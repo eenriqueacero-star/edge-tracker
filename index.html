@@ -49,7 +49,7 @@ button{font-family:inherit;cursor:pointer}
 /* live positions - leaderboard */
 .live-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
 .live-title{font-size:22px;font-weight:800;color:var(--creamb)}
-.live-badge{display:flex;align-items:center;gap:6px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:var(--amber);letter-spacing:1px;background:rgba(255,215,0,0.1);padding:5px 14px;border-radius:100px;border:1px solid rgba(255,215,0,0.3)}
+.live-badge{display:flex;align-items:center;gap:6px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:var(--amber);letter-spacing:1px;background:rgba(255,215,0,0.1);padding:5px 14px;border-radius:100px;border:1px solid rgba(255,215,0,0.3);min-width:200px;justify-content:center}
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:blink 1.8s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 .live-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
@@ -684,7 +684,6 @@ async function fetchPrice(ticker){
 async function refreshAllPrices(){
   const tickers = [...new Set(openPos().map(t=>t.ticker).filter(Boolean))];
   if(!tickers.length){ document.getElementById('live-status').textContent = 'no open positions'; return; }
-  document.getElementById('live-status').textContent = 'fetching…';
   const results = await Promise.all([...tickers.map(tk=>fetchPrice(tk)), fetchPrice('SPY')]);
   tickers.forEach((tk,i)=>{ if(results[i]) liveCache[tk]=results[i]; });
   const spyResult = results[tickers.length];
