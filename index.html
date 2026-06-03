@@ -367,7 +367,7 @@ const db   = firebase.firestore();
 const auth = firebase.auth();
 
 const FINNHUB_KEY = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
-const REFRESH_MS = 60000;
+const REFRESH_MS = 5000;
 
 let trades = [], confirmCb = null, closingId = null, pBucket = 'core', pPlan = 'planned';
 let liveCache = {}, spyLive = null;
