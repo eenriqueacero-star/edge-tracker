@@ -143,6 +143,37 @@ tr:hover td{background:rgba(0,162,255,0.07)}
 .auth-sep{height:1px;background:var(--line);margin:20px 0}
 .auth-toggle-btn{background:none;border:none;color:var(--brass);font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;padding:0}
 .auth-toggle-btn:hover{color:var(--brassb)}
+
+/* news section */
+.news-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.news-title{font-size:22px;font-weight:800;color:var(--creamb)}
+.news-sub{font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--creamx);letter-spacing:0.5px;margin-top:3px}
+.news-card{background:var(--inst);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.news-card-head{display:flex;align-items:center;gap:12px;padding:16px 20px;cursor:pointer;user-select:none;transition:background 0.15s}
+.news-card-head:hover{background:rgba(255,255,255,0.04)}
+.news-sent-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;transition:background 0.3s}
+.news-card-ticker{font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;color:var(--creamb);letter-spacing:1px}
+.news-card-count{font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--creamx);margin-left:6px}
+.news-chevron{margin-left:auto;color:var(--creamx);font-size:13px;transition:transform 0.2s;line-height:1}
+.news-card.open .news-chevron{transform:rotate(180deg)}
+.news-body{display:none;padding:0 20px 20px}
+.news-card.open .news-body{display:block}
+.news-article{padding:12px 0;border-bottom:1px solid var(--line)}
+.news-article:last-of-type{border-bottom:none}
+.news-headline{font-size:13px;font-weight:700;color:var(--creamb);margin-bottom:4px;line-height:1.45}
+.news-headline a{color:var(--creamb);text-decoration:none}
+.news-headline a:hover{color:var(--brass);text-decoration:underline}
+.news-meta{font-size:11px;color:var(--creamx);font-weight:600;margin-bottom:5px}
+.news-summary{font-size:12px;color:var(--creamd);line-height:1.55;font-weight:600}
+.news-verdict{margin-top:16px;padding:14px 18px;background:var(--panel);border-radius:10px;border-left:3px solid var(--brass)}
+.nv-label{font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+.nv-sent{font-size:17px;font-weight:800;margin-bottom:5px}
+.nv-theme{font-size:12px;font-weight:700;color:var(--creamd);margin-bottom:6px}
+.nv-impact{font-size:12px;color:var(--creamd);line-height:1.6;font-weight:600}
+.news-spinner{display:flex;align-items:center;gap:10px;padding:18px 0;color:var(--creamx);font-size:12px;font-weight:700}
+.spinner{width:15px;height:15px;border:2px solid var(--line);border-top-color:var(--brass);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.news-none{padding:14px 0;color:var(--creamx);font-size:12px;font-weight:700;font-style:italic}
 </style>
 </head>
 <body>
@@ -233,6 +264,18 @@ tr:hover td{background:rgba(0,162,255,0.07)}
   </div>
   <div class="live-sum" id="live-sum"></div>
   <div id="live-panel"></div>
+</div>
+
+<!-- NEWS SECTION -->
+<div class="sec" id="news-sec">
+  <div class="news-header">
+    <div>
+      <div class="news-title">Position News</div>
+      <div class="news-sub">AI-summarized · last 7 days</div>
+    </div>
+    <button class="btn" onclick="News.refresh()">↺ Refresh</button>
+  </div>
+  <div id="news-container"></div>
 </div>
 
 <div class="sec">
@@ -362,8 +405,9 @@ firebase.initializeApp(firebaseConfig);
 const db   = firebase.firestore();
 const auth = firebase.auth();
 
-const FINNHUB_KEY = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
-const REFRESH_MS = 60000;
+const FINNHUB_KEY    = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
+const TELEGRAM_TOKEN = '8793038031:AAF2Zwdm9JZtDWZ7zmR8b9ntqVThUq4txpo';
+const REFRESH_MS     = 60000;
 
 let trades = [], confirmCb = null, closingId = null, pBucket = 'core', pPlan = 'planned';
 let liveCache = {}, spyLive = null;
@@ -532,6 +576,7 @@ async function loadFromFirestore(){
   }catch(e){ trades = []; Notif.init(); }
   renderAll();
   startRefresh();
+  News.refresh();
 }
 
 async function save(){
@@ -780,6 +825,131 @@ function renderCharts(s){
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#FFFFFF',boxWidth:14}}},scales:{x:{grid:{color:g},ticks:{color:tk}},y:{grid:{color:g},ticks:{color:tk,callback:v=>v+'%'}}}}});
   alCh=new Chart(document.getElementById('alChart'),{type:'bar',data:{labels:s.tickers,datasets:[{label:'Alpha',data:s.alphas.map(a=>+(a*100).toFixed(2)),backgroundColor:s.alphas.map(a=>a>0?'rgba(0,176,111,0.8)':'rgba(255,68,68,0.8)'),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:tk}},y:{grid:{color:g},ticks:{color:tk,callback:v=>v+'%'}}}}});
 }
+
+// ── NEWS ──────────────────────────────────────────────────────────────────
+const News = {
+  _cache: {},
+
+  async refresh(){
+    const tickers=[...new Set(openPos().map(t=>t.ticker).filter(Boolean))];
+    const el=document.getElementById('news-container');
+    if(!tickers.length){el.innerHTML='<div class="empty">No open positions to fetch news for.</div>';return;}
+    el.innerHTML=tickers.map(tk=>`
+      <div class="news-card open" id="nc-${tk}">
+        <div class="news-card-head" onclick="News.toggle('${esc(tk)}')">
+          <div class="news-sent-dot" id="nd-${tk}" style="background:var(--creamx)"></div>
+          <div class="news-card-ticker">${esc(tk)}</div>
+          <div class="news-chevron">▼</div>
+        </div>
+        <div class="news-body">
+          <div class="news-spinner"><div class="spinner"></div>Fetching news…</div>
+        </div>
+      </div>`).join('');
+    await Promise.all(tickers.map(tk=>this._fetchTicker(tk)));
+  },
+
+  async _fetchTicker(ticker){
+    const now=new Date();
+    const from=new Date(now-7*86400000).toISOString().slice(0,10);
+    const to=now.toISOString().slice(0,10);
+    let articles=[];
+    try{
+      const r=await fetch(`https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${from}&to=${to}&token=${FINNHUB_KEY}`);
+      const d=await r.json();
+      if(Array.isArray(d)) articles=d.slice(0,5);
+    }catch(_){}
+    this._cache[ticker]=articles;
+    this._renderTicker(ticker,articles);
+  },
+
+  _renderTicker(ticker,articles){
+    const card=document.getElementById(`nc-${ticker}`);
+    if(!card) return;
+    const body=card.querySelector('.news-body');
+    const dot=document.getElementById(`nd-${ticker}`);
+    if(!articles.length){
+      body.innerHTML=`<div class="news-none">No recent news found for ${esc(ticker)}.</div>`;
+      dot.style.background='var(--creamx)';
+      return;
+    }
+    const verdict=this._verdict(articles,ticker);
+    const sc=verdict.sentiment==='Bullish'?'var(--jade)':verdict.sentiment==='Bearish'?'var(--red)':'var(--amber)';
+    dot.style.background=sc;
+    card.querySelector('.news-card-ticker').innerHTML=`${esc(ticker)}<span class="news-card-count">${articles.length} articles</span>`;
+    const arts=articles.map(a=>{
+      const date=a.datetime?new Date(a.datetime*1000).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+      const url=a.url?esc(a.url):'#';
+      const summary=this._oneSentence(a.summary||a.headline||'');
+      return`<div class="news-article">
+        <div class="news-headline"><a href="${url}" target="_blank" rel="noopener">${esc(a.headline||'No headline')}</a></div>
+        <div class="news-meta">${esc(a.source||'')}${date?' · '+date:''}</div>
+        <div class="news-summary">${esc(summary)}</div>
+      </div>`;
+    }).join('');
+    body.innerHTML=`${arts}
+      <div class="news-verdict">
+        <div class="nv-label" style="color:${sc}">AI Verdict · ${esc(ticker)}</div>
+        <div class="nv-sent" style="color:${sc}">${esc(verdict.sentiment)}</div>
+        <div class="nv-theme">${esc(verdict.theme)}</div>
+        <div class="nv-impact">${esc(verdict.impact)}</div>
+      </div>`;
+  },
+
+  toggle(ticker){
+    const card=document.getElementById(`nc-${ticker}`);
+    if(card) card.classList.toggle('open');
+  },
+
+  _oneSentence(text){
+    if(!text) return '';
+    const t=text.replace(/\s+/g,' ').trim();
+    const m=t.match(/^[^.!?]+[.!?]/);
+    return m?m[0]:t.slice(0,140)+(t.length>140?'…':'');
+  },
+
+  _verdict(articles,ticker){
+    const combined=articles.map(a=>(a.headline+' '+(a.summary||'')).toLowerCase()).join(' ');
+    const bWords=['beat','beats','upgrade','upgraded','buy rating','bullish','partnership','deal','launch','growth','record high','profit','revenue beat','raised guidance','expansion','acquisition','contract','strong earnings','positive','optimistic','rally','outperform'];
+    const rWords=['miss','misses','downgrade','downgraded','sell rating','bearish','lawsuit','loss','layoffs','layoff','guidance cut','decline','warns','disappoints','disappointing','fda reject','investigation','recall','fine','penalty','ceo resign','ceo fired','weak','fell short','below estimates'];
+    let bull=0,bear=0;
+    bWords.forEach(w=>{if(combined.includes(w))bull++;});
+    rWords.forEach(w=>{if(combined.includes(w))bear++;});
+    const sentiment=bull>bear+1?'Bullish':bear>bull+1?'Bearish':'Neutral';
+
+    let theme='Mixed coverage with no single dominant theme.';
+    if(/earnings|revenue|eps|quarterly results/.test(combined)){
+      const beat=/beat|exceeded|above estimates|topped/.test(combined);
+      const miss=/miss|fell short|below estimates|disappointed/.test(combined);
+      theme=beat?'Earnings beat — results came in above expectations.':miss?'Earnings miss — results fell short of estimates.':'Earnings in focus with mixed signals.';
+    } else if(/fda|approval|clinical trial|phase [23]/.test(combined)){
+      theme='Regulatory or clinical news driving coverage.';
+    } else if(/upgrade|downgrade|analyst|price target|rating/.test(combined)){
+      theme='Analyst activity — rating changes or price target moves.';
+    } else if(/acquisition|merger|deal|takeover|buyout/.test(combined)){
+      theme='M&A or partnership news in focus.';
+    } else if(/lawsuit|investigation|fine|penalty|sec|ftc/.test(combined)){
+      theme='Legal or regulatory risk headlines dominating.';
+    } else if(/ceo|cfo|executive|management|leadership/.test(combined)){
+      theme='Leadership or management change in the news.';
+    } else if(/guidance|outlook|forecast|raised|lowered/.test(combined)){
+      theme='Forward guidance and outlook driving sentiment.';
+    } else if(/product|launch|release|announced/.test(combined)){
+      theme='Product launch or announcement news.';
+    }
+
+    const h=articles[0]?.headline||'';
+    const hn=`"${h.slice(0,90)}${h.length>90?'…':''}"`;
+    let impact;
+    if(sentiment==='Bullish'){
+      impact=`News flow is positive for ${ticker} — ${bull} bullish signals across ${articles.length} articles. Recent coverage supports the thesis. Key headline: ${hn}.`;
+    } else if(sentiment==='Bearish'){
+      impact=`News flow is negative for ${ticker} — ${bear} bearish signals across ${articles.length} articles. Review your thesis against current headlines. Key concern: ${hn}.`;
+    } else {
+      impact=`Sentiment is mixed for ${ticker}: ${bull} bullish vs ${bear} bearish signals across ${articles.length} articles. No strong directional catalyst detected. Monitor for developing themes.`;
+    }
+    return {sentiment,theme,impact};
+  }
+};
 
 function renderAll(){
   const s=buildStats();
