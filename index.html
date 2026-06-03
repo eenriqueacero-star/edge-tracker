@@ -215,7 +215,22 @@ tr:hover td{background:rgba(0,162,255,0.07)}
     <button class="btn" onclick="App.loadSample()">Example Data</button>
     <button class="btn danger" onclick="App.askClear()">Clear All</button>
     <button class="btn primary" onclick="App.openAdd()">+ Log Trade</button>
+    <button class="btn" onclick="Notif.toggle()" id="notif-btn">🔔 Alerts</button>
     <button class="btn" onclick="Auth.signOut()" title="Sign out">Sign Out</button>
+  </div>
+</div>
+
+<!-- NOTIFICATION SETTINGS PANEL -->
+<div id="notif-panel" style="display:none;margin-bottom:16px;padding:16px 20px;background:var(--inst);border:1px solid var(--line);border-radius:12px;border-left:4px solid var(--amber)">
+  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <span style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:1px">🔔 Telegram Alerts</span>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--creamd);cursor:pointer">
+      <input type="checkbox" id="notif-enabled" onchange="Notif.save()"> Enabled
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--creamd)">
+      Daily move ±<input class="finput" id="notif-threshold" type="number" min="0.5" max="20" step="0.5" value="3" style="width:65px;padding:5px 8px;display:inline-block" onchange="Notif.save()">%
+    </label>
+    <span style="font-size:11px;color:var(--creamx);font-weight:600">Notifies when a position moves ±threshold% in a day, or when alpha turns negative vs SPY. 1-hour cooldown per ticker.</span>
   </div>
 </div>
 
@@ -368,12 +383,61 @@ const auth = firebase.auth();
 
 const FINNHUB_KEY = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
 const REFRESH_MS = 5000;
+const TELEGRAM_TOKEN = '8793038031:AAF2Zwdm9JZtDWZ7zmR8b9ntqVThUq4txpo';
+const TELEGRAM_CHAT  = '8162576417';
 
 let trades = [], confirmCb = null, closingId = null, pBucket = 'core', pPlan = 'planned';
 let liveCache = {}, spyLive = null;
 let eqCh = null, alCh = null, tsCh = null;
 let refreshTimer = null;
 let currentUser = null;
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+const alertCooldowns = {};
+const Notif = {
+  _key: 'etNotifSettings',
+  load(){ try{ return JSON.parse(localStorage.getItem(this._key))||{enabled:false,threshold:3}; }catch(e){ return {enabled:false,threshold:3}; } },
+  save(){
+    const s={enabled:document.getElementById('notif-enabled').checked,threshold:parseFloat(document.getElementById('notif-threshold').value)||3};
+    localStorage.setItem(this._key,JSON.stringify(s));
+  },
+  init(){
+    const s=this.load();
+    document.getElementById('notif-enabled').checked=s.enabled;
+    document.getElementById('notif-threshold').value=s.threshold;
+  },
+  toggle(){ const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'':'none'; }
+};
+
+async function sendTelegram(text){
+  try{
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TELEGRAM_CHAT,text,parse_mode:'HTML'})});
+  }catch(e){}
+}
+
+function checkAlerts(rows){
+  const s=Notif.load(); if(!s.enabled) return;
+  const now=Date.now(), cooldown=3600000;
+  rows.forEach(r=>{
+    if(r.changePct!=null&&Math.abs(r.changePct)>=s.threshold){
+      const key=`${r.ticker}_daily_${r.changePct>0?'up':'down'}`;
+      if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
+        alertCooldowns[key]=now;
+        const emoji=r.changePct>0?'🚀':'⚠️';
+        sendTelegram(`${emoji} <b>${r.ticker}</b> is ${r.changePct>0?'up':'down'} <b>${r.changePct>0?'+':''}${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
+      }
+    }
+    if(r.al!=null&&r.al<0){
+      const key=`${r.ticker}_alpha_neg`;
+      if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
+        alertCooldowns[key]=now;
+        sendTelegram(`📉 <b>${r.ticker}</b> alpha turned negative\nLagging SPY by <b>${(r.al*100).toFixed(2)}%</b> since entry`);
+      }
+    } else if(r.al!=null&&r.al>=0){
+      delete alertCooldowns[`${r.ticker}_alpha_neg`];
+    }
+  });
+}
 
 // ── GATE ───────────────────────────────────────────────────────────────────
 const Gate = {
@@ -558,6 +622,7 @@ function renderLive(){
     return {...t,now,yr,br,al,pnl,mktVal,change:live?.change||null,changePct:live?.changePct||null};
   });
 
+  checkAlerts(rows);
   const validRows = rows.filter(r=>r.al!=null);
   const totalPnl = rows.reduce((s,r)=>s+(r.pnl||0),0);
   const totalMktVal = rows.reduce((s,r)=>s+(r.mktVal||0),0);
@@ -830,6 +895,7 @@ function updateMarketTimer(){
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
+Notif.init();
 updateMarketTimer();
 setInterval(updateMarketTimer, 1000);
 
