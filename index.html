@@ -117,6 +117,12 @@ tr:hover td{background:var(--panel)}
 
 /* confirm */
 .confirm-box{background:linear-gradient(135deg,var(--panel),var(--deep));border:1px solid var(--lineb);border-top:2px solid var(--red);max-width:380px;width:100%;padding:28px;margin:auto}
+
+/* market timer */
+.market-timer{text-align:center;min-width:160px;padding:4px 12px;border:1px solid var(--line);background:var(--inst)}
+.mt-label{font-family:monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--creamx);margin-bottom:5px}
+.mt-count{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:800;line-height:1;letter-spacing:2px;color:var(--brassb)}
+.mt-sub{font-family:monospace;font-size:9px;color:var(--creamx);margin-top:5px;letter-spacing:1px}
 </style>
 </head>
 <body>
@@ -126,6 +132,11 @@ tr:hover td{background:var(--panel)}
   <div>
     <div class="brand">Edge Tracker</div>
     <div class="brand-sub">Edwins Investments</div>
+  </div>
+  <div class="market-timer">
+    <div class="mt-label" id="mt-label">Market Opens In</div>
+    <div class="mt-count" id="mt-count">--:--:--</div>
+    <div class="mt-sub" id="mt-sub">NYSE · NASDAQ · 9:30 AM ET</div>
   </div>
   <div class="actions">
     <span class="sync" id="sync-st"></span>
@@ -590,10 +601,48 @@ const App = {
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')['add-ov','close-ov','confirm-ov'].forEach(id=>document.getElementById(id).classList.remove('open'));});
 
+// ── MARKET COUNTDOWN ──────────────────────────────────────────────────────
+function updateMarketTimer(){
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour12:false,weekday:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(now);
+  const get = t => parseInt(parts.find(p=>p.type===t)?.value||'0',10);
+  const dayMap = {Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+  const dow = dayMap[parts.find(p=>p.type==='weekday')?.value]??-1;
+  const h=get('hour'),m=get('minute'),s=get('second');
+  const nowSecs=h*3600+m*60+s, openSecs=9*3600+30*60, closeSecs=16*3600;
+  const isWeekday=dow>=1&&dow<=5;
+  const pad=n=>String(n).padStart(2,'0');
+  const hms=sec=>pad(Math.floor(sec/3600))+':'+pad(Math.floor(sec%3600/60))+':'+pad(sec%60);
+  const lbl=document.getElementById('mt-label'),cnt=document.getElementById('mt-count'),sub=document.getElementById('mt-sub');
+  if(isWeekday&&nowSecs>=openSecs&&nowSecs<closeSecs){
+    lbl.textContent='Market Closes In';
+    cnt.textContent=hms(closeSecs-nowSecs);
+    cnt.style.color='var(--jade)';
+    sub.textContent='MARKET OPEN · NYSE · NASDAQ';
+    sub.style.color='var(--jade)';
+  } else {
+    let secsToOpen;
+    if(isWeekday&&nowSecs<openSecs){
+      secsToOpen=openSecs-nowSecs;
+    } else {
+      let daysAhead=1,nextDow=(dow+daysAhead)%7;
+      while(nextDow===0||nextDow===6){daysAhead++;nextDow=(dow+daysAhead)%7;}
+      secsToOpen=(86400-nowSecs)+(daysAhead-1)*86400+openSecs;
+    }
+    lbl.textContent='Market Opens In';
+    cnt.textContent=hms(secsToOpen);
+    cnt.style.color='var(--brassb)';
+    sub.textContent='NYSE · NASDAQ · 9:30 AM ET';
+    sub.style.color='var(--creamx)';
+  }
+}
+
 // ── INIT ───────────────────────────────────────────────────────────────────
 load();
 renderAll();
 startRefresh();
+updateMarketTimer();
+setInterval(updateMarketTimer,1000);
 </script>
 </body>
 </html>
