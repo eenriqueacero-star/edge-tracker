@@ -1,4 +1,4 @@
-const { onRequest } = require('firebase-functions/v2/https');
+const { onRequest, onCall } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
 
@@ -86,6 +86,45 @@ function newsVerdict(articles, ticker) {
   }
   return { sentiment, theme };
 }
+
+// ── admin data ────────────────────────────────────────────────────────────
+
+const ADMIN_EMAIL = 'avoidingransom@gmail.com';
+
+exports.getAdminData = onCall(async (request) => {
+  if (!request.auth || request.auth.token.email !== ADMIN_EMAIL) {
+    throw new Error('Unauthorized');
+  }
+
+  const [firestoreSnap, authList] = await Promise.all([
+    db.collection('users').get(),
+    admin.auth().listUsers()
+  ]);
+
+  const authMap = {};
+  authList.users.forEach(u => { authMap[u.uid] = u; });
+
+  const users = [];
+  firestoreSnap.forEach(doc => {
+    const data     = doc.data();
+    const authUser = authMap[doc.id];
+    const trades   = data.trades || [];
+    users.push({
+      uid:          doc.id,
+      email:        authUser?.email || '—',
+      username:     data.username   || '—',
+      openTrades:   trades.filter(t => !t.exitPrice).length,
+      closedTrades: trades.filter(t =>  t.exitPrice).length,
+      createdAt:    authUser?.metadata?.creationTime  || null,
+      lastSignIn:   authUser?.metadata?.lastSignInTime || null,
+      priceAlerts:  data.priceAlertsEnabled || false,
+      newsAlerts:   data.newsAlertsEnabled  || false,
+    });
+  });
+
+  users.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  return { users };
+});
 
 // ── price alerts (every 5 min) ─────────────────────────────────────────────
 

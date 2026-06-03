@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#1B1B1B;--panel:#252525;--deep:#1B1B1B;--inst:#2D2D2D;--line:#393939;--lineb:#4a4a4a;--brass:#00A2FF;--brassb:#33b8ff;--brassd:#007acc;--ox:#cc0000;--jade:#00B06F;--jaded:#005c3b;--cream:#FFFFFF;--creamb:#FFFFFF;--creamd:#CCCCCC;--creamx:#A8A8A8;--red:#FF4444;--violet:#9B59B6;--amber:#FFD700}
@@ -328,6 +329,7 @@ tr:hover td{background:rgba(0,162,255,0.07)}
   <button class="tab-btn" id="tab-buckets" onclick="Tabs.go('buckets')"><span class="tab-icon">🎯</span>Buckets</button>
   <button class="tab-btn" id="tab-positions" onclick="Tabs.go('positions')"><span class="tab-icon">📋</span>Positions</button>
   <button class="tab-btn" id="tab-settings" onclick="Tabs.go('settings')"><span class="tab-icon">⚙️</span>Settings</button>
+  <button class="tab-btn" id="tab-admin" onclick="Tabs.go('admin')" style="display:none"><span class="tab-icon">🛡️</span>Admin</button>
 </div>
 
 <!-- DASHBOARD TAB -->
@@ -539,6 +541,17 @@ tr:hover td{background:rgba(0,162,255,0.07)}
   </div>
 </div>
 
+<!-- ADMIN TAB -->
+<div class="tab-panel" id="panel-admin">
+  <div class="sec">
+    <div class="sec-head">
+      <div class="sec-title">🛡️ Admin</div>
+      <button class="btn" onclick="Admin.load()">↺ Refresh</button>
+    </div>
+    <div id="admin-panel"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
 </div>
 
 <!-- ADD TRADE MODAL -->
@@ -627,6 +640,7 @@ const db   = firebase.firestore();
 const auth = firebase.auth();
 
 const FINNHUB_KEY    = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
+const ADMIN_EMAIL    = 'avoidingransom@gmail.com';
 const TELEGRAM_TOKEN = '8793038031:AAF2Zwdm9JZtDWZ7zmR8b9ntqVThUq4txpo';
 const REFRESH_MS     = 60000;
 
@@ -881,6 +895,44 @@ const Settings = {
     if(ns) ns.checked=userSettings.alertOnSentimentChange;
     if(nb) nb.checked=userSettings.alertOnBreaking;
     if(nf) nf.value=userSettings.newsCheckFrequency;
+  }
+};
+
+// ── ADMIN ─────────────────────────────────────────────────────────────────
+const Admin = {
+  async load(){
+    const el = document.getElementById('admin-panel');
+    el.innerHTML = '<div class="empty">Loading…</div>';
+    try {
+      const fn = firebase.functions().httpsCallable('getAdminData');
+      const { data } = await fn();
+      this._render(data.users);
+    } catch(e) {
+      el.innerHTML = `<div class="empty" style="color:var(--red)">Error: ${e.message}</div>`;
+    }
+  },
+  _render(users){
+    const el = document.getElementById('admin-panel');
+    if(!users.length){ el.innerHTML='<div class="empty">No users yet.</div>'; return; }
+    const rows = users.map(u => `<tr>
+      <td><span style="font-weight:700;color:var(--creamb)">${esc(u.email)}</span></td>
+      <td style="font-weight:700;color:var(--creamd)">${esc(u.username)}</td>
+      <td class="r" style="font-family:monospace">${u.openTrades} open / ${u.closedTrades} closed</td>
+      <td class="r muted">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</td>
+      <td class="r muted">${u.lastSignIn ? new Date(u.lastSignIn).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</td>
+      <td class="r">${u.priceAlerts?'<span style="color:var(--jade);font-weight:700">ON</span>':'<span style="color:var(--creamx)">off</span>'}</td>
+      <td class="r">${u.newsAlerts?'<span style="color:var(--jade);font-weight:700">ON</span>':'<span style="color:var(--creamx)">off</span>'}</td>
+    </tr>`).join('');
+    el.innerHTML = `
+      <div style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--creamx);margin-bottom:10px">${users.length} registered account${users.length!==1?'s':''}</div>
+      <div class="tbl-panel"><table>
+        <thead><tr>
+          <th>Email</th><th>Username</th><th class="r">Trades</th>
+          <th class="r">Joined</th><th class="r">Last Login</th>
+          <th class="r">Price Alerts</th><th class="r">News Alerts</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
   }
 };
 
@@ -1567,7 +1619,10 @@ auth.onAuthStateChanged(user => {
   if(user){
     authScreen.style.display = 'none';
     mainWrap.style.display   = '';
+    const adminBtn = document.getElementById('tab-admin');
+    if(adminBtn) adminBtn.style.display = user.email === ADMIN_EMAIL ? '' : 'none';
     loadFromFirestore();
+    if(user.email === ADMIN_EMAIL) Admin.load();
   } else {
     mainWrap.style.display   = 'none';
     authScreen.style.display = 'flex';
