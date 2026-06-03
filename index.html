@@ -13,7 +13,7 @@
 <style>
 :root{--bg:#1B1B1B;--panel:#252525;--deep:#1B1B1B;--inst:#2D2D2D;--line:#393939;--lineb:#4a4a4a;--brass:#00A2FF;--brassb:#33b8ff;--brassd:#007acc;--ox:#cc0000;--jade:#00B06F;--jaded:#005c3b;--cream:#FFFFFF;--creamb:#FFFFFF;--creamd:#CCCCCC;--creamx:#A8A8A8;--red:#FF4444;--violet:#9B59B6;--amber:#FFD700}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--cream);font-family:'Nunito',sans-serif;font-size:15px;line-height:1.6;overflow-x:hidden}
+body{background:var(--bg);color:var(--cream);font-family:'Nunito',sans-serif;font-size:15px;line-height:1.6}
 button{font-family:inherit;cursor:pointer}
 .wrap{max-width:1200px;margin:0 auto;padding:28px 20px 100px}
 .topbar{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border-radius:16px;padding:16px 24px;margin-bottom:26px;flex-wrap:wrap;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.5);border:1px solid var(--line)}
@@ -57,7 +57,7 @@ button{font-family:inherit;cursor:pointer}
 .live-sum-cell{background:var(--inst);padding:16px;border-radius:12px;border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,0.25)}
 .ls-lbl{font-family:'Nunito',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--creamx);margin-bottom:6px}
 .ls-val{font-family:'Fredoka One',cursive;font-size:26px;font-weight:400}
-.live-tbl{border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.live-tbl{border-radius:12px;overflow-x:auto;border:1px solid var(--line)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--creamx);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--panel);white-space:nowrap}
 th.r,td.r{text-align:right}
@@ -187,7 +187,12 @@ tr:hover td{background:rgba(0,162,255,0.07)}
 .tab-panel{display:none;animation:fadeTab 0.15s ease}
 .tab-panel.active{display:block}
 @keyframes fadeTab{from{opacity:0}to{opacity:1}}
-@media(max-width:680px){.tab-btn{padding:8px 11px;font-size:11px;gap:4px}.tab-icon{font-size:14px}}
+@media(max-width:680px){
+  .tab-bar{overflow-x:visible;gap:2px}
+  .tab-btn{flex:1;flex-shrink:1;min-width:0;padding:10px 2px;font-size:0;gap:0;justify-content:center}
+  .tab-icon{font-size:20px}
+  .tab-badge{top:5px;right:calc(50% - 13px)}
+}
 </style>
 </head>
 <body>
