@@ -222,12 +222,21 @@ tr:hover td{background:rgba(0,162,255,0.07)}
 .welcome-greeting{font-size:18px;font-weight:800;color:var(--creamb)}
 .welcome-date{font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--creamx)}
 
-/* profile tab */
-.profile-card{background:var(--inst);border:1px solid var(--line);border-radius:16px;padding:28px;margin-bottom:22px;display:flex;align-items:center;gap:24px;box-shadow:0 4px 20px rgba(0,0,0,0.35);flex-wrap:wrap}
-.profile-info{flex:1;min-width:160px}
-.profile-name{font-size:26px;font-weight:900;color:var(--creamb);margin-bottom:5px}
-.profile-email-txt{font-size:13px;color:var(--creamx);font-weight:600;margin-bottom:4px}
-.profile-since{font-size:11px;color:var(--creamx);font-weight:600}
+/* settings cards */
+.settings-card{background:var(--inst);border:1px solid var(--line);border-radius:16px;margin-bottom:20px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.35)}
+.settings-card-header{font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;letter-spacing:0.3px;color:var(--creamb);padding:18px 24px;background:var(--panel);border-bottom:1px solid var(--line)}
+.settings-card-body{padding:24px}
+.settings-danger{background:rgba(255,68,68,0.07);border:1px solid rgba(255,68,68,0.25);border-radius:12px;padding:18px 20px}
+/* custom toggles */
+.toggle-wrap{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer}
+.toggle-input{opacity:0;width:0;height:0;position:absolute}
+.toggle-pill{position:absolute;inset:0;background:var(--lineb);border-radius:24px;transition:background 0.2s}
+.toggle-pill:before{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.3)}
+.toggle-input:checked+.toggle-pill{background:var(--brass)}
+.toggle-input:checked+.toggle-pill:before{transform:translateX(20px)}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+.toggle-row.sm{padding:9px 0}
+.toggle-row:last-of-type{border-bottom:none}
 </style>
 </head>
 <body>
@@ -302,7 +311,7 @@ tr:hover td{background:rgba(0,162,255,0.07)}
   </div>
   <div class="actions">
     <span class="sync" id="sync-st"></span>
-    <div class="topbar-user" onclick="Tabs.go('profile')" title="View profile">
+    <div class="topbar-user" onclick="Tabs.go('settings')" title="Settings">
       <div class="avatar avatar-sm" id="topbar-avatar" style="background:var(--brass)">?</div>
       <span class="topbar-username" id="topbar-username"></span>
     </div>
@@ -319,7 +328,6 @@ tr:hover td{background:rgba(0,162,255,0.07)}
   <button class="tab-btn" id="tab-buckets" onclick="Tabs.go('buckets')"><span class="tab-icon">🎯</span>Buckets</button>
   <button class="tab-btn" id="tab-positions" onclick="Tabs.go('positions')"><span class="tab-icon">📋</span>Positions</button>
   <button class="tab-btn" id="tab-settings" onclick="Tabs.go('settings')"><span class="tab-icon">⚙️</span>Settings</button>
-  <button class="tab-btn" id="tab-profile" onclick="Tabs.go('profile')"><span class="tab-icon">👤</span>Profile</button>
 </div>
 
 <!-- DASHBOARD TAB -->
@@ -405,38 +413,125 @@ tr:hover td{background:rgba(0,162,255,0.07)}
 
 <!-- SETTINGS TAB -->
 <div class="tab-panel" id="panel-settings">
-  <div class="sec">
-    <div class="sec-head"><div class="sec-title">🔔 Telegram Alerts</div></div>
-    <div class="cbox">
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <input type="checkbox" id="notif-enabled" onchange="Notif.save()" style="accent-color:var(--brass);width:16px;height:16px">
-          <span style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--creamb)">Enable Alerts</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:8px">
-          <span style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--creamx)">Threshold %</span>
-          <input type="number" id="notif-threshold" value="3" min="0.5" max="20" step="0.5" onchange="Notif.save()" style="width:68px;background:var(--inst);border:1px solid var(--line);color:var(--creamb);font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;padding:6px 8px;border-radius:8px;text-align:center">
-        </label>
-      </div>
-      <div style="margin-bottom:16px">
-        <div class="flabel">Your Telegram Chat ID</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <input class="finput" id="notif-chat-id" placeholder="e.g. 8162576417" style="max-width:220px">
-          <button class="btn primary" onclick="Notif.linkChatId()">Link &amp; Test</button>
-          <span id="notif-link-status" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--jade)"></span>
+
+  <!-- Profile -->
+  <div class="settings-card">
+    <div class="settings-card-header">👤 Profile</div>
+    <div class="settings-card-body">
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:24px;flex-wrap:wrap">
+        <div class="avatar avatar-lg" id="settings-avatar" style="background:var(--brass)">?</div>
+        <div>
+          <div style="font-size:22px;font-weight:900;color:var(--creamb);margin-bottom:4px" id="settings-profile-name">—</div>
+          <div style="font-size:13px;color:var(--creamx);font-weight:600;margin-bottom:3px" id="settings-profile-email"></div>
+          <div style="font-size:11px;color:var(--creamx);font-weight:600" id="settings-profile-since"></div>
         </div>
       </div>
+      <div style="margin-bottom:16px">
+        <label class="flabel">Username</label>
+        <input class="finput" id="settings-username" placeholder="Your name" style="max-width:320px">
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button class="btn primary" onclick="Settings.saveProfile()">Save Changes</button>
+        <span id="settings-profile-status" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--jade)"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock Price Alerts -->
+  <div class="settings-card">
+    <div class="settings-card-header">🔔 Stock Price Alerts</div>
+    <div class="settings-card-body">
+      <div class="toggle-row" style="border-bottom:none;margin-bottom:18px">
+        <div>
+          <div style="font-weight:700;color:var(--creamb);font-size:14px">Enable Price Alerts</div>
+          <div style="font-size:12px;color:var(--creamx);margin-top:2px">Get Telegram messages when your positions move</div>
+        </div>
+        <label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-price-enabled" onchange="Settings.savePriceAlerts()"><span class="toggle-pill"></span></label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:18px">
+        <div>
+          <label class="flabel">Telegram Bot Token</label>
+          <input class="finput" id="s-bot-token" placeholder="1234567890:AAFxxx..." onchange="Settings.savePriceAlerts()">
+          <div class="fhint">From @BotFather on Telegram</div>
+        </div>
+        <div>
+          <label class="flabel">Your Chat ID</label>
+          <input class="finput" id="s-chat-id" placeholder="e.g. 8162576417" onchange="Settings.savePriceAlerts()">
+          <div class="fhint">From @userinfobot on Telegram</div>
+        </div>
+      </div>
+      <div style="margin-bottom:18px">
+        <div class="flabel" style="margin-bottom:8px">Alert Triggers</div>
+        <div class="toggle-row sm"><span style="font-size:13px;color:var(--creamd);font-weight:600">📉 Drop &gt; 5% today</span><label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-alert-drop5" onchange="Settings.savePriceAlerts()"><span class="toggle-pill"></span></label></div>
+        <div class="toggle-row sm"><span style="font-size:13px;color:var(--creamd);font-weight:600">🚀 Pump &gt; 5% today</span><label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-alert-pump5" onchange="Settings.savePriceAlerts()"><span class="toggle-pill"></span></label></div>
+        <div class="toggle-row sm"><span style="font-size:13px;color:var(--creamd);font-weight:600">📊 Alpha &lt; -5% vs SPY</span><label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-alert-alpha" onchange="Settings.savePriceAlerts()"><span class="toggle-pill"></span></label></div>
+        <div class="toggle-row sm"><span style="font-size:13px;color:var(--creamd);font-weight:600">🆘 Down &gt; 10% today</span><label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-alert-down10" onchange="Settings.savePriceAlerts()"><span class="toggle-pill"></span></label></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px">
+        <button class="btn primary" onclick="Settings.testPriceAlert()">Send Test Message</button>
+        <span id="s-price-status" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:700"></span>
+      </div>
       <div style="background:var(--panel);border-radius:10px;padding:14px 16px;border:1px solid var(--line)">
-        <div style="font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--brass);margin-bottom:10px">How to link your Telegram</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--brass);margin-bottom:10px">How to set up your Telegram bot</div>
         <ol style="padding-left:18px;font-size:13px;color:var(--creamd);line-height:2.1;font-weight:600">
-          <li>Open Telegram and search <strong style="color:var(--creamb)">@EdgeTrackerBot</strong></li>
-          <li>Send <code style="background:var(--inst);padding:1px 6px;border-radius:4px;color:var(--brass);font-size:12px">/myid</code> — the bot replies with your chat ID</li>
-          <li>Paste the number above and tap <strong>Link &amp; Test</strong></li>
-          <li>You'll receive a test message to confirm it's working</li>
+          <li>Open Telegram and search <strong style="color:var(--creamb)">@BotFather</strong></li>
+          <li>Send <code style="background:var(--inst);padding:1px 6px;border-radius:4px;color:var(--brass);font-size:12px">/newbot</code> and follow the steps — copy your bot token above</li>
+          <li>Start a chat with your new bot, then search <strong style="color:var(--creamb)">@userinfobot</strong></li>
+          <li>Send <code style="background:var(--inst);padding:1px 6px;border-radius:4px;color:var(--brass);font-size:12px">/start</code> to @userinfobot — it replies with your Chat ID</li>
         </ol>
       </div>
     </div>
   </div>
+
+  <!-- News Alerts -->
+  <div class="settings-card">
+    <div class="settings-card-header">📰 News Alerts</div>
+    <div class="settings-card-body">
+      <div class="toggle-row" style="border-bottom:none;margin-bottom:18px">
+        <div>
+          <div style="font-weight:700;color:var(--creamb);font-size:14px">Enable News Alerts</div>
+          <div style="font-size:12px;color:var(--creamx);margin-top:2px">Get notified when news breaks on your open positions (uses same bot &amp; chat ID)</div>
+        </div>
+        <label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-news-enabled" onchange="Settings.saveNewsAlerts()"><span class="toggle-pill"></span></label>
+      </div>
+      <div style="margin-bottom:18px">
+        <div class="flabel" style="margin-bottom:8px">Alert Triggers</div>
+        <div class="toggle-row sm"><span style="font-size:13px;color:var(--creamd);font-weight:600">New article published</span><label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-news-new" onchange="Settings.saveNewsAlerts()"><span class="toggle-pill"></span></label></div>
+        <div class="toggle-row sm"><span style="font-size:13px;color:var(--creamd);font-weight:600">Sentiment changes direction</span><label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-news-sentiment" onchange="Settings.saveNewsAlerts()"><span class="toggle-pill"></span></label></div>
+        <div class="toggle-row sm"><span style="font-size:13px;color:var(--creamd);font-weight:600">Breaking news keywords</span><label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-news-breaking" onchange="Settings.saveNewsAlerts()"><span class="toggle-pill"></span></label></div>
+      </div>
+      <div style="margin-bottom:18px">
+        <label class="flabel">Check Frequency</label>
+        <select class="finput" id="s-news-freq" onchange="Settings.saveNewsAlerts()" style="max-width:200px">
+          <option value="15">Every 15 minutes</option>
+          <option value="30">Every 30 minutes</option>
+          <option value="60">Every hour</option>
+          <option value="180">Every 3 hours</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="btn primary" onclick="Settings.testNewsAlert()">Send Test Message</button>
+        <span id="s-news-status" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:700"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account -->
+  <div class="settings-card">
+    <div class="settings-card-header">🔐 Account</div>
+    <div class="settings-card-body">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+        <button class="btn" onclick="Settings.changePassword()">Change Password</button>
+        <button class="btn danger" onclick="Auth.signOut()">Sign Out</button>
+      </div>
+      <div class="settings-danger">
+        <div style="font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:8px">Danger Zone</div>
+        <div style="font-size:13px;color:var(--creamd);margin-bottom:14px;font-weight:600;line-height:1.6">Permanently deletes your account and all trade data. This cannot be undone.</div>
+        <button class="btn danger" onclick="Settings.deleteAccount()">Delete Account</button>
+      </div>
+    </div>
+  </div>
+
   <div class="sec">
     <div class="sec-head"><div class="sec-title">Data</div></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -448,31 +543,6 @@ tr:hover td{background:rgba(0,162,255,0.07)}
     <strong>Your benchmark: SPY. Always.</strong> Every trade measured against SPY over the exact same days. One index, never changed, no exceptions — switching benchmarks to flatter results is lying to yourself and breaks the edge-vs-luck test.
     <br><br>
     <strong>Live prices</strong> are fetched from Finnhub every 60 seconds. Works in pre-market and after-hours. Green = beating SPY since entry. Red = lagging.
-  </div>
-</div>
-
-<!-- PROFILE TAB -->
-<div class="tab-panel" id="panel-profile">
-  <div class="profile-card">
-    <div class="avatar avatar-lg" id="profile-avatar" style="background:var(--brass)">?</div>
-    <div class="profile-info">
-      <div class="profile-name" id="profile-name">—</div>
-      <div class="profile-email-txt" id="profile-email-txt"></div>
-      <div class="profile-since" id="profile-since"></div>
-    </div>
-  </div>
-  <div class="sec">
-    <div class="sec-head"><div class="sec-title">Edit Profile</div></div>
-    <div class="cbox">
-      <div style="margin-bottom:18px">
-        <label class="flabel">Username</label>
-        <input class="finput" id="profile-username-input" placeholder="Your name" style="max-width:320px">
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <button class="btn primary" onclick="Profile.save()">Save Changes</button>
-        <span id="profile-save-status" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--jade)"></span>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -563,9 +633,8 @@ firebase.initializeApp(firebaseConfig);
 const db   = firebase.firestore();
 const auth = firebase.auth();
 
-const FINNHUB_KEY    = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
-const TELEGRAM_TOKEN = '8793038031:AAF2Zwdm9JZtDWZ7zmR8b9ntqVThUq4txpo';
-const REFRESH_MS     = 60000;
+const FINNHUB_KEY = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
+const REFRESH_MS  = 60000;
 
 let trades = [], confirmCb = null, closingId = null, pBucket = 'core', pPlan = 'planned';
 let liveCache = {}, spyLive = null;
@@ -573,6 +642,12 @@ let eqCh = null, alCh = null, tsCh = null;
 let refreshTimer = null;
 let currentUser = null;
 let userProfile = { username: '' };
+let userSettings = {
+  username:'', telegramBotToken:'', telegramChatId:'',
+  priceAlertsEnabled:false, alertOnDrop5:true, alertOnPump5:true, alertOnAlphaNeg:true, alertOnDown10:false,
+  newsAlertsEnabled:false, alertOnNewArticle:false, alertOnSentimentChange:true, alertOnBreaking:true,
+  newsCheckFrequency:30
+};
 
 // ── PROFILE ────────────────────────────────────────────────────────────────
 function _avatarColor(str){
@@ -593,38 +668,16 @@ const Profile = {
     if(!userProfile.username) userProfile.username=(currentUser.email||'').split('@')[0];
     this.render();
   },
-  async save(){
-    const name=(document.getElementById('profile-username-input').value||'').trim();
-    if(!name){alert('Enter a username.');return;}
-    userProfile.username=name;
-    try{
-      await db.collection('users').doc(currentUser.uid).set({username:name},{merge:true});
-      const st=document.getElementById('profile-save-status');
-      st.textContent='✓ Saved';setTimeout(()=>st.textContent='',2500);
-    }catch(e){alert('Save failed.');}
-    this.render();
-  },
   render(){
     const name=userProfile.username||'?';
     const color=_avatarColor(name);
     const init=_avatarInit(name);
-    // topbar
     const ta=document.getElementById('topbar-avatar');
     const tu=document.getElementById('topbar-username');
     if(ta){ta.style.background=color;ta.textContent=init;}
     if(tu) tu.textContent=name;
-    // profile tab card
-    const pa=document.getElementById('profile-avatar');
-    const pn=document.getElementById('profile-name');
-    const pe=document.getElementById('profile-email-txt');
-    const ps=document.getElementById('profile-since');
-    const pi=document.getElementById('profile-username-input');
-    if(pa){pa.style.background=color;pa.textContent=init;}
-    if(pn) pn.textContent=name;
-    if(pe) pe.textContent=currentUser?.email||'';
-    if(ps){const ct=currentUser?.metadata?.creationTime;ps.textContent=ct?'Member since '+new Date(ct).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):''}
-    if(pi) pi.value=name;
     updateWelcomeBar();
+    Settings.render();
   }
 };
 
@@ -665,62 +718,49 @@ function updateClock(){
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
 const alertCooldowns = {};
-const Notif = {
-  _key: 'etNotifSettings',
-  load(){ try{ return JSON.parse(localStorage.getItem(this._key))||{enabled:false,threshold:3}; }catch(e){ return {enabled:false,threshold:3}; } },
-  save(){
-    const s={enabled:document.getElementById('notif-enabled').checked,threshold:parseFloat(document.getElementById('notif-threshold').value)||3};
-    localStorage.setItem(this._key,JSON.stringify(s));
-    if(currentUser){
-      db.collection('users').doc(currentUser.uid).set({alertEnabled:s.enabled,alertThreshold:s.threshold},{merge:true}).catch(()=>{});
-    }
-  },
-  init(data){
-    const s = data ? {enabled:data.alertEnabled??false,threshold:data.alertThreshold??3} : this.load();
-    document.getElementById('notif-enabled').checked=s.enabled;
-    document.getElementById('notif-threshold').value=s.threshold;
-    document.getElementById('notif-chat-id').value=userTelegramChatId||'';
-  },
-  async linkChatId(){
-    const val=document.getElementById('notif-chat-id').value.trim();
-    if(!val){ alert('Enter your Telegram chat ID first.'); return; }
-    userTelegramChatId=val;
-    await saveSettings();
-    await sendTelegram('✅ <b>Edge Tracker</b> alerts linked successfully!');
-    document.getElementById('notif-link-status').textContent='✓ Linked';
-    setTimeout(()=>document.getElementById('notif-link-status').textContent='',3000);
-  },
-  toggle(){ const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'':'none'; }
-};
 
-async function sendTelegram(text){
-  if(!userTelegramChatId) return;
+async function sendTelegram(token, chatId, text){
+  if(!token||!chatId) return false;
   try{
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:userTelegramChatId,text,parse_mode:'HTML'})});
-  }catch(e){}
+    const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text,parse_mode:'HTML'})});
+    return r.ok;
+  }catch(e){ return false; }
 }
 
 function checkAlerts(rows){
-  const s=Notif.load(); if(!s.enabled) return;
+  if(!userSettings.priceAlertsEnabled) return;
+  const token=userSettings.telegramBotToken, chatId=userSettings.telegramChatId;
+  if(!token||!chatId) return;
   const now=Date.now(), cooldown=3600000;
   rows.forEach(r=>{
-    if(r.changePct!=null&&Math.abs(r.changePct)>=s.threshold){
-      const key=`${r.ticker}_daily_${r.changePct>0?'up':'down'}`;
+    if(userSettings.alertOnDrop5&&r.changePct!=null&&r.changePct<=-5){
+      const key=`${r.ticker}_daily_down`;
       if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
-        alertCooldowns[key]=now;
-        persistCooldown(key,now);
-        const emoji=r.changePct>0?'🚀':'⚠️';
-        sendTelegram(`${emoji} <b>${r.ticker}</b> is ${r.changePct>0?'up':'down'} <b>${r.changePct>0?'+':''}${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
+        alertCooldowns[key]=now; persistCooldown(key,now);
+        sendTelegram(token,chatId,`⚠️ <b>${r.ticker}</b> dropped <b>${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
       }
     }
-    if(r.al!=null&&r.al<0){
+    if(userSettings.alertOnPump5&&r.changePct!=null&&r.changePct>=5){
+      const key=`${r.ticker}_daily_up`;
+      if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
+        alertCooldowns[key]=now; persistCooldown(key,now);
+        sendTelegram(token,chatId,`🚀 <b>${r.ticker}</b> is up <b>+${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
+      }
+    }
+    if(userSettings.alertOnDown10&&r.changePct!=null&&r.changePct<=-10){
+      const key=`${r.ticker}_daily_crash`;
+      if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
+        alertCooldowns[key]=now; persistCooldown(key,now);
+        sendTelegram(token,chatId,`🆘 <b>${r.ticker}</b> crashed <b>${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
+      }
+    }
+    if(userSettings.alertOnAlphaNeg&&r.al!=null&&r.al<-0.05){
       const key=`${r.ticker}_alpha_neg`;
       if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
-        alertCooldowns[key]=now;
-        persistCooldown(key,now);
-        sendTelegram(`📉 <b>${r.ticker}</b> alpha turned negative\nLagging SPY by <b>${(r.al*100).toFixed(2)}%</b> since entry`);
+        alertCooldowns[key]=now; persistCooldown(key,now);
+        sendTelegram(token,chatId,`📉 <b>${r.ticker}</b> alpha turned negative\nLagging SPY by <b>${(r.al*100).toFixed(2)}%</b> since entry`);
       }
-    } else if(r.al!=null&&r.al>=0){
+    } else if(r.al!=null&&r.al>=-0.05){
       delete alertCooldowns[`${r.ticker}_alpha_neg`];
     }
   });
@@ -730,6 +770,130 @@ function persistCooldown(key, ts){
   if(!currentUser) return;
   db.collection('users').doc(currentUser.uid).set({alertCooldowns:{[key]:ts}},{merge:true}).catch(()=>{});
 }
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────
+const Settings = {
+  async saveProfile(){
+    const name=(document.getElementById('settings-username').value||'').trim();
+    if(!name){ alert('Enter a username.'); return; }
+    userProfile.username=name; userSettings.username=name;
+    try{
+      await db.collection('users').doc(currentUser.uid).set({username:name},{merge:true});
+      const st=document.getElementById('settings-profile-status');
+      st.textContent='✓ Saved'; setTimeout(()=>st.textContent='',2500);
+    }catch(e){ alert('Save failed.'); }
+    Profile.render();
+  },
+  async savePriceAlerts(){
+    userSettings.priceAlertsEnabled=document.getElementById('s-price-enabled').checked;
+    userSettings.telegramBotToken=document.getElementById('s-bot-token').value.trim();
+    userSettings.telegramChatId=document.getElementById('s-chat-id').value.trim();
+    userSettings.alertOnDrop5=document.getElementById('s-alert-drop5').checked;
+    userSettings.alertOnPump5=document.getElementById('s-alert-pump5').checked;
+    userSettings.alertOnAlphaNeg=document.getElementById('s-alert-alpha').checked;
+    userSettings.alertOnDown10=document.getElementById('s-alert-down10').checked;
+    if(currentUser){
+      db.collection('users').doc(currentUser.uid).set({
+        telegramBotToken:userSettings.telegramBotToken,
+        telegramChatId:userSettings.telegramChatId,
+        priceAlertsEnabled:userSettings.priceAlertsEnabled,
+        alertOnDrop5:userSettings.alertOnDrop5,
+        alertOnPump5:userSettings.alertOnPump5,
+        alertOnAlphaNeg:userSettings.alertOnAlphaNeg,
+        alertOnDown10:userSettings.alertOnDown10
+      },{merge:true}).catch(()=>{});
+    }
+  },
+  async saveNewsAlerts(){
+    userSettings.newsAlertsEnabled=document.getElementById('s-news-enabled').checked;
+    userSettings.alertOnNewArticle=document.getElementById('s-news-new').checked;
+    userSettings.alertOnSentimentChange=document.getElementById('s-news-sentiment').checked;
+    userSettings.alertOnBreaking=document.getElementById('s-news-breaking').checked;
+    userSettings.newsCheckFrequency=parseInt(document.getElementById('s-news-freq').value)||30;
+    if(currentUser){
+      db.collection('users').doc(currentUser.uid).set({
+        newsAlertsEnabled:userSettings.newsAlertsEnabled,
+        alertOnNewArticle:userSettings.alertOnNewArticle,
+        alertOnSentimentChange:userSettings.alertOnSentimentChange,
+        alertOnBreaking:userSettings.alertOnBreaking,
+        newsCheckFrequency:userSettings.newsCheckFrequency
+      },{merge:true}).catch(()=>{});
+    }
+    News.scheduleRefresh();
+  },
+  async testPriceAlert(){
+    const token=document.getElementById('s-bot-token').value.trim();
+    const chatId=document.getElementById('s-chat-id').value.trim();
+    const st=document.getElementById('s-price-status');
+    if(!token||!chatId){ st.textContent='✗ Enter token and chat ID first'; st.style.color='var(--red)'; setTimeout(()=>{st.textContent='';st.style.color='';},3000); return; }
+    const ok=await sendTelegram(token,chatId,'✅ <b>Edge Tracker</b> price alerts are linked!');
+    st.textContent=ok?'✓ Message sent':'✗ Failed — check token & chat ID';
+    st.style.color=ok?'var(--jade)':'var(--red)';
+    setTimeout(()=>{st.textContent='';st.style.color='';},3500);
+  },
+  async testNewsAlert(){
+    const token=userSettings.telegramBotToken, chatId=userSettings.telegramChatId;
+    const st=document.getElementById('s-news-status');
+    if(!token||!chatId){ st.textContent='✗ Configure price alerts first (same bot)'; st.style.color='var(--red)'; setTimeout(()=>{st.textContent='';st.style.color='';},3000); return; }
+    const ok=await sendTelegram(token,chatId,'📰 <b>Edge Tracker</b> news alerts are linked!');
+    st.textContent=ok?'✓ Message sent':'✗ Failed — check token & chat ID';
+    st.style.color=ok?'var(--jade)':'var(--red)';
+    setTimeout(()=>{st.textContent='';st.style.color='';},3500);
+  },
+  async changePassword(){
+    const email=currentUser?.email;
+    if(!email){ alert('Not signed in.'); return; }
+    try{ await auth.sendPasswordResetEmail(email); alert('Password reset email sent to '+email); }
+    catch(e){ alert('Error: '+e.message); }
+  },
+  async deleteAccount(){
+    const input=prompt('Type DELETE to permanently delete your account and all data:');
+    if(input!=='DELETE') return;
+    try{
+      await db.collection('users').doc(currentUser.uid).delete();
+      await currentUser.delete();
+    }catch(e){ alert('Error: '+e.message+'\nYou may need to sign out and sign in again first.'); }
+  },
+  render(){
+    const name=userProfile.username||'?';
+    const color=_avatarColor(name);
+    const init=_avatarInit(name);
+    const sa=document.getElementById('settings-avatar');
+    if(sa){sa.style.background=color;sa.textContent=init;}
+    const sn=document.getElementById('settings-profile-name');
+    const se=document.getElementById('settings-profile-email');
+    const ss=document.getElementById('settings-profile-since');
+    const si=document.getElementById('settings-username');
+    if(sn) sn.textContent=name;
+    if(se) se.textContent=currentUser?.email||'';
+    if(ss){const ct=currentUser?.metadata?.creationTime;ss.textContent=ct?'Member since '+new Date(ct).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';}
+    if(si&&document.activeElement!==si) si.value=name;
+    const pe=document.getElementById('s-price-enabled');
+    const bt=document.getElementById('s-bot-token');
+    const ci=document.getElementById('s-chat-id');
+    if(pe) pe.checked=userSettings.priceAlertsEnabled;
+    if(bt&&document.activeElement!==bt) bt.value=userSettings.telegramBotToken;
+    if(ci&&document.activeElement!==ci) ci.value=userSettings.telegramChatId;
+    const d5=document.getElementById('s-alert-drop5');
+    const p5=document.getElementById('s-alert-pump5');
+    const al=document.getElementById('s-alert-alpha');
+    const d10=document.getElementById('s-alert-down10');
+    if(d5) d5.checked=userSettings.alertOnDrop5;
+    if(p5) p5.checked=userSettings.alertOnPump5;
+    if(al) al.checked=userSettings.alertOnAlphaNeg;
+    if(d10) d10.checked=userSettings.alertOnDown10;
+    const ne=document.getElementById('s-news-enabled');
+    const nn=document.getElementById('s-news-new');
+    const ns=document.getElementById('s-news-sentiment');
+    const nb=document.getElementById('s-news-breaking');
+    const nf=document.getElementById('s-news-freq');
+    if(ne) ne.checked=userSettings.newsAlertsEnabled;
+    if(nn) nn.checked=userSettings.alertOnNewArticle;
+    if(ns) ns.checked=userSettings.alertOnSentimentChange;
+    if(nb) nb.checked=userSettings.alertOnBreaking;
+    if(nf) nf.value=userSettings.newsCheckFrequency;
+  }
+};
 
 // ── GATE ───────────────────────────────────────────────────────────────────
 const Gate = {
@@ -814,28 +978,39 @@ function setSt(m, c){ const e = document.getElementById('sync-st'); if(e){ e.tex
 async function loadFromFirestore(){
   if(!currentUser) return;
   try{
-    const doc = await db.collection('users').doc(currentUser.uid).get();
-    const data = doc.exists ? doc.data() : {};
-    trades = data.trades || [];
-    userTelegramChatId = data.telegramChatId || '';
-    userProfile.username = data.username || '';
-    const stored = data.alertCooldowns || {};
-    Object.assign(alertCooldowns, stored);
-    Notif.init(data);
-  }catch(e){ trades = []; Notif.init(); }
-  if(!userProfile.username) userProfile.username=(currentUser.email||'').split('@')[0];
+    const doc=await db.collection('users').doc(currentUser.uid).get();
+    const data=doc.exists?doc.data():{};
+    trades=data.trades||[];
+    userSettings.username=data.username||'';
+    userSettings.telegramBotToken=data.telegramBotToken||'';
+    userSettings.telegramChatId=data.telegramChatId||'';
+    userSettings.priceAlertsEnabled=data.priceAlertsEnabled??false;
+    userSettings.alertOnDrop5=data.alertOnDrop5??true;
+    userSettings.alertOnPump5=data.alertOnPump5??true;
+    userSettings.alertOnAlphaNeg=data.alertOnAlphaNeg??true;
+    userSettings.alertOnDown10=data.alertOnDown10??false;
+    userSettings.newsAlertsEnabled=data.newsAlertsEnabled??false;
+    userSettings.alertOnNewArticle=data.alertOnNewArticle??false;
+    userSettings.alertOnSentimentChange=data.alertOnSentimentChange??true;
+    userSettings.alertOnBreaking=data.alertOnBreaking??true;
+    userSettings.newsCheckFrequency=data.newsCheckFrequency??30;
+    Object.assign(alertCooldowns,data.alertCooldowns||{});
+  }catch(e){ trades=[]; }
+  userProfile.username=userSettings.username||(currentUser.email||'').split('@')[0];
+  userSettings.username=userProfile.username;
   Profile.render();
   renderAll();
   Tabs.init();
   startRefresh();
   News.refresh();
+  News.scheduleRefresh();
   showGreeting();
 }
 
 async function save(){
   if(!currentUser) return;
   try{
-    await db.collection('users').doc(currentUser.uid).set({ trades, telegramChatId: userTelegramChatId }, { merge: true });
+    await db.collection('users').doc(currentUser.uid).set({trades},{merge:true});
     setSt('✓ saved','#6fb592');
   }catch(e){ setSt('save err','#d04a45'); }
 }
@@ -1107,6 +1282,15 @@ const Tabs = {
 // ── NEWS ──────────────────────────────────────────────────────────────────
 const News = {
   _cache: {},
+  _lastHeadlines: {},
+  _lastSentiment: {},
+  _timer: null,
+
+  scheduleRefresh(){
+    if(this._timer) clearInterval(this._timer);
+    const freq=(userSettings.newsCheckFrequency||30)*60000;
+    this._timer=setInterval(()=>this.refresh(),freq);
+  },
 
   async refresh(){
     const tickers=[...new Set(openPos().map(t=>t.ticker).filter(Boolean))];
@@ -1138,6 +1322,42 @@ const News = {
     }catch(_){}
     this._cache[ticker]=articles;
     this._renderTicker(ticker,articles);
+    if(userSettings.newsAlertsEnabled&&userSettings.telegramBotToken&&userSettings.telegramChatId){
+      this._checkNewsAlerts(ticker,articles);
+    }
+  },
+
+  _checkNewsAlerts(ticker,articles){
+    if(!articles.length) return;
+    const token=userSettings.telegramBotToken, chatId=userSettings.telegramChatId;
+    const prevHeadlines=this._lastHeadlines[ticker]||[];
+    const prevSentiment=this._lastSentiment[ticker];
+    const verdict=this._verdict(articles,ticker);
+    const newArticles=articles.filter(a=>!prevHeadlines.includes(a.headline));
+    const hasHistory=prevHeadlines.length>0;
+
+    if(hasHistory&&userSettings.alertOnNewArticle&&newArticles.length){
+      const h=newArticles[0].headline||'';
+      sendTelegram(token,chatId,`📰 <b>${ticker}</b> — ${newArticles.length} new article${newArticles.length>1?'s':''}\n"${h.slice(0,120)}"`);
+    }
+
+    if(hasHistory&&userSettings.alertOnBreaking&&newArticles.length){
+      const breaking=['fda reject','recall','bankruptcy','chapter 11','sec charges','fraud','indicted','ceo resign','ceo fired','acquisition','merger','buyout','takeover','partnership'];
+      const txt=newArticles.map(a=>(a.headline+' '+(a.summary||'')).toLowerCase()).join(' ');
+      const hit=breaking.find(w=>txt.includes(w));
+      if(hit){
+        const h=newArticles[0].headline||'';
+        sendTelegram(token,chatId,`🚨 <b>Breaking: ${ticker}</b>\n"${h.slice(0,130)}"`);
+      }
+    }
+
+    if(hasHistory&&userSettings.alertOnSentimentChange&&prevSentiment&&prevSentiment!==verdict.sentiment){
+      const arrow=verdict.sentiment==='Bullish'?'📈':verdict.sentiment==='Bearish'?'📉':'➡️';
+      sendTelegram(token,chatId,`${arrow} <b>${ticker}</b> sentiment: ${prevSentiment} → <b>${verdict.sentiment}</b>\n${verdict.theme}`);
+    }
+
+    this._lastHeadlines[ticker]=articles.map(a=>a.headline);
+    this._lastSentiment[ticker]=verdict.sentiment;
   },
 
   _renderTicker(ticker,articles){

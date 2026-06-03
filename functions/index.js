@@ -5,9 +5,9 @@ const admin = require('firebase-admin');
 admin.initializeApp();
 const db = admin.firestore();
 
-const TOKEN       = '8793038031:AAF2Zwdm9JZtDWZ7zmR8b9ntqVThUq4txpo';
-const API         = `https://api.telegram.org/bot${TOKEN}`;
 const FINNHUB_KEY = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
+const WEBHOOK_TOKEN = '8793038031:AAF2Zwdm9JZtDWZ7zmR8b9ntqVThUq4txpo';
+const WEBHOOK_API   = `https://api.telegram.org/bot${WEBHOOK_TOKEN}`;
 
 exports.telegramWebhook = onRequest(async (req, res) => {
   try {
@@ -16,13 +16,13 @@ exports.telegramWebhook = onRequest(async (req, res) => {
       const chatId = update.message.chat.id;
       const text   = (update.message.text || '').trim();
       if (text.startsWith('/myid') || text.startsWith('/start')) {
-        await fetch(`${API}/sendMessage`, {
+        await fetch(`${WEBHOOK_API}/sendMessage`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id:    chatId,
             parse_mode: 'HTML',
-            text: `🔑 <b>Your chat ID is:</b>\n\n<code>${chatId}</code>\n\nCopy that number and paste it into the <b>🔔 Alerts</b> panel in Edge Tracker, then tap <b>Link &amp; Test</b>.`
+            text: `🔑 <b>Your chat ID is:</b>\n\n<code>${chatId}</code>\n\nCopy that number and paste it into the <b>⚙️ Settings → Stock Price Alerts</b> panel in Edge Tracker.`
           })
         });
       }
@@ -40,9 +40,9 @@ async function fetchQuote(ticker) {
   return null;
 }
 
-async function sendTelegram(chatId, text) {
+async function sendTelegramMsg(botToken, chatId, text) {
   try {
-    await fetch(`${API}/sendMessage`, {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
@@ -54,15 +54,13 @@ exports.checkPriceAlerts = onSchedule('every 5 minutes', async () => {
   const snap = await db.collection('users').get();
   if (snap.empty) return;
 
-  // Gather unique tickers across all users who have alerts enabled
   const allTickers = new Set(['SPY']);
   snap.forEach(doc => {
-    const { trades = [], alertEnabled } = doc.data();
-    if (!alertEnabled) return;
+    const { trades = [], priceAlertsEnabled } = doc.data();
+    if (!priceAlertsEnabled) return;
     trades.forEach(t => { if (!t.exitPrice && t.ticker) allTickers.add(t.ticker); });
   });
 
-  // Fetch all prices in parallel
   const tickerArr = [...allTickers];
   const quotes    = await Promise.all(tickerArr.map(tk => fetchQuote(tk)));
   const priceMap  = {};
@@ -70,19 +68,23 @@ exports.checkPriceAlerts = onSchedule('every 5 minutes', async () => {
 
   const spyQuote = priceMap['SPY'];
   const now      = Date.now();
-  const COOLDOWN = 3600000; // 1 hour
+  const COOLDOWN = 3600000;
 
   for (const doc of snap.docs) {
     const data = doc.data();
     const {
-      alertEnabled,
-      alertThreshold = 3,
+      priceAlertsEnabled,
+      telegramBotToken,
       telegramChatId,
-      trades          = [],
+      alertOnDrop5    = true,
+      alertOnPump5    = true,
+      alertOnAlphaNeg = true,
+      alertOnDown10   = false,
+      trades           = [],
       alertCooldowns  = {}
     } = data;
 
-    if (!alertEnabled || !telegramChatId) continue;
+    if (!priceAlertsEnabled || !telegramBotToken || !telegramChatId) continue;
 
     const openTrades = trades.filter(t => !t.exitPrice && t.ticker);
     if (!openTrades.length) continue;
@@ -94,37 +96,46 @@ exports.checkPriceAlerts = onSchedule('every 5 minutes', async () => {
       const q = priceMap[trade.ticker];
       if (!q) continue;
 
-      // Daily % change alert
-      if (q.changePct != null && Math.abs(q.changePct) >= alertThreshold) {
-        const dir = q.changePct > 0 ? 'up' : 'down';
-        const key = `${trade.ticker}_daily_${dir}`;
+      if (alertOnDrop5 && q.changePct != null && q.changePct <= -5) {
+        const key = `${trade.ticker}_daily_down`;
         if (!cooldowns[key] || now - cooldowns[key] > COOLDOWN) {
-          cooldowns[key] = now;
-          changed = true;
-          const emoji = q.changePct > 0 ? '🚀' : '⚠️';
-          await sendTelegram(telegramChatId,
-            `${emoji} <b>${trade.ticker}</b> is ${dir} <b>${q.changePct > 0 ? '+' : ''}${q.changePct.toFixed(2)}%</b> today\nPrice: $${q.price.toFixed(2)}`
-          );
+          cooldowns[key] = now; changed = true;
+          await sendTelegramMsg(telegramBotToken, telegramChatId,
+            `⚠️ <b>${trade.ticker}</b> dropped <b>${q.changePct.toFixed(2)}%</b> today\nPrice: $${q.price.toFixed(2)}`);
         }
       }
 
-      // Alpha vs SPY alert
-      if (spyQuote && trade.benchEntry && trade.entryPrice) {
+      if (alertOnPump5 && q.changePct != null && q.changePct >= 5) {
+        const key = `${trade.ticker}_daily_up`;
+        if (!cooldowns[key] || now - cooldowns[key] > COOLDOWN) {
+          cooldowns[key] = now; changed = true;
+          await sendTelegramMsg(telegramBotToken, telegramChatId,
+            `🚀 <b>${trade.ticker}</b> is up <b>+${q.changePct.toFixed(2)}%</b> today\nPrice: $${q.price.toFixed(2)}`);
+        }
+      }
+
+      if (alertOnDown10 && q.changePct != null && q.changePct <= -10) {
+        const key = `${trade.ticker}_daily_crash`;
+        if (!cooldowns[key] || now - cooldowns[key] > COOLDOWN) {
+          cooldowns[key] = now; changed = true;
+          await sendTelegramMsg(telegramBotToken, telegramChatId,
+            `🆘 <b>${trade.ticker}</b> crashed <b>${q.changePct.toFixed(2)}%</b> today\nPrice: $${q.price.toFixed(2)}`);
+        }
+      }
+
+      if (alertOnAlphaNeg && spyQuote && trade.benchEntry && trade.entryPrice) {
         const tradeRet = (q.price - trade.entryPrice) / trade.entryPrice;
         const spyRet   = (spyQuote.price - trade.benchEntry) / trade.benchEntry;
         const alpha    = tradeRet - spyRet;
         const key      = `${trade.ticker}_alpha_neg`;
-        if (alpha < 0) {
+        if (alpha < -0.05) {
           if (!cooldowns[key] || now - cooldowns[key] > COOLDOWN) {
-            cooldowns[key] = now;
-            changed = true;
-            await sendTelegram(telegramChatId,
-              `📉 <b>${trade.ticker}</b> alpha turned negative\nLagging SPY by <b>${(alpha * 100).toFixed(2)}%</b> since entry`
-            );
+            cooldowns[key] = now; changed = true;
+            await sendTelegramMsg(telegramBotToken, telegramChatId,
+              `📉 <b>${trade.ticker}</b> alpha turned negative\nLagging SPY by <b>${(alpha * 100).toFixed(2)}%</b> since entry`);
           }
         } else if (cooldowns[key]) {
-          delete cooldowns[key];
-          changed = true;
+          delete cooldowns[key]; changed = true;
         }
       }
     }
