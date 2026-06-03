@@ -193,9 +193,50 @@ tr:hover td{background:rgba(0,162,255,0.07)}
   .tab-icon{font-size:20px}
   .tab-badge{top:5px;right:calc(50% - 13px)}
 }
+
+/* greeting overlay */
+#greeting-overlay{position:fixed;inset:0;z-index:4000;display:none;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a0f1a 0%,#1B1B1B 50%,#0a1628 100%)}
+#greeting-overlay.show{display:flex}
+.greeting-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 25% 50%,rgba(0,162,255,0.18) 0%,transparent 55%),radial-gradient(ellipse at 75% 40%,rgba(0,176,111,0.12) 0%,transparent 50%);animation:gBg 5s ease-in-out infinite alternate}
+@keyframes gBg{from{opacity:.5}to{opacity:1}}
+.greeting-text{position:relative;font-family:'Fredoka One',cursive;font-size:clamp(32px,7vw,56px);color:#fff;text-align:center;line-height:1.3;text-shadow:0 0 40px rgba(0,162,255,0.55),0 2px 20px rgba(0,0,0,0.5);opacity:0;transform:translateY(32px);transition:opacity .55s ease,transform .55s ease}
+#greeting-overlay.show .greeting-text{opacity:1;transform:translateY(0)}
+#greeting-overlay.fade-out .greeting-text{opacity:0;transform:translateY(-36px)}
+#greeting-overlay.fade-out{opacity:0;transition:opacity .55s ease}
+
+/* clock */
+.clock-card{text-align:center;min-width:110px;padding:10px 14px;border:1px solid var(--line);background:var(--inst);border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,0.35)}
+.clock-time{font-family:'Fredoka One',cursive;font-size:22px;font-weight:400;line-height:1;letter-spacing:1px;color:var(--brass)}
+.clock-tz{font-family:'Nunito',sans-serif;font-size:9px;font-weight:700;color:var(--creamx);margin-top:4px;letter-spacing:1px;text-transform:uppercase}
+
+/* avatar */
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-family:'Fredoka One',cursive;font-weight:400;color:#fff;flex-shrink:0;line-height:1}
+.avatar-sm{width:32px;height:32px;font-size:14px}
+.avatar-lg{width:72px;height:72px;font-size:30px}
+.topbar-user{display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 10px;border-radius:10px;border:1px solid transparent;transition:all 0.15s}
+.topbar-user:hover{background:rgba(255,255,255,0.07);border-color:var(--line)}
+.topbar-username{font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:var(--cream)}
+
+/* welcome bar */
+.welcome-bar{background:var(--inst);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;box-shadow:0 2px 10px rgba(0,0,0,0.3)}
+.welcome-greeting{font-size:18px;font-weight:800;color:var(--creamb)}
+.welcome-date{font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--creamx)}
+
+/* profile tab */
+.profile-card{background:var(--inst);border:1px solid var(--line);border-radius:16px;padding:28px;margin-bottom:22px;display:flex;align-items:center;gap:24px;box-shadow:0 4px 20px rgba(0,0,0,0.35);flex-wrap:wrap}
+.profile-info{flex:1;min-width:160px}
+.profile-name{font-size:26px;font-weight:900;color:var(--creamb);margin-bottom:5px}
+.profile-email-txt{font-size:13px;color:var(--creamx);font-weight:600;margin-bottom:4px}
+.profile-since{font-size:11px;color:var(--creamx);font-weight:600}
 </style>
 </head>
 <body>
+
+<!-- GREETING OVERLAY -->
+<div id="greeting-overlay">
+  <div class="greeting-bg"></div>
+  <div class="greeting-text" id="greeting-text">Good Morning 👋</div>
+</div>
 
 <!-- GATE SCREEN -->
 <div id="gate-screen">
@@ -255,9 +296,16 @@ tr:hover td{background:rgba(0,162,255,0.07)}
     <div class="mt-count" id="mt-count">--:--:--</div>
     <div class="mt-sub" id="mt-sub">NYSE · NASDAQ · 9:30 AM ET</div>
   </div>
+  <div class="clock-card">
+    <div class="clock-time" id="clock-time">--:--:--</div>
+    <div class="clock-tz" id="clock-tz">--</div>
+  </div>
   <div class="actions">
     <span class="sync" id="sync-st"></span>
-    <span style="font-family:monospace;font-size:10px;color:var(--creamx)" id="user-email-display"></span>
+    <div class="topbar-user" onclick="Tabs.go('profile')" title="View profile">
+      <div class="avatar avatar-sm" id="topbar-avatar" style="background:var(--brass)">?</div>
+      <span class="topbar-username" id="topbar-username"></span>
+    </div>
     <button class="btn primary" onclick="App.openAdd()">+ Log Trade</button>
     <button class="btn" onclick="Auth.signOut()" title="Sign out">Sign Out</button>
   </div>
@@ -271,10 +319,17 @@ tr:hover td{background:rgba(0,162,255,0.07)}
   <button class="tab-btn" id="tab-buckets" onclick="Tabs.go('buckets')"><span class="tab-icon">🎯</span>Buckets</button>
   <button class="tab-btn" id="tab-positions" onclick="Tabs.go('positions')"><span class="tab-icon">📋</span>Positions</button>
   <button class="tab-btn" id="tab-settings" onclick="Tabs.go('settings')"><span class="tab-icon">⚙️</span>Settings</button>
+  <button class="tab-btn" id="tab-profile" onclick="Tabs.go('profile')"><span class="tab-icon">👤</span>Profile</button>
 </div>
 
 <!-- DASHBOARD TAB -->
 <div class="tab-panel active" id="panel-dashboard">
+  <div class="welcome-bar">
+    <div>
+      <div class="welcome-greeting" id="welcome-greeting">Welcome back 👋</div>
+      <div class="welcome-date" id="welcome-date"></div>
+    </div>
+  </div>
   <p style="font-style:italic;font-size:14px;color:var(--creamx);margin-bottom:24px;max-width:560px">Every pick, measured against SPY over the exact same days. The honest answer: edge, or a good market?</p>
   <div class="verdict" id="verdict">
     <div class="v-label">The Verdict</div>
@@ -396,6 +451,31 @@ tr:hover td{background:rgba(0,162,255,0.07)}
   </div>
 </div>
 
+<!-- PROFILE TAB -->
+<div class="tab-panel" id="panel-profile">
+  <div class="profile-card">
+    <div class="avatar avatar-lg" id="profile-avatar" style="background:var(--brass)">?</div>
+    <div class="profile-info">
+      <div class="profile-name" id="profile-name">—</div>
+      <div class="profile-email-txt" id="profile-email-txt"></div>
+      <div class="profile-since" id="profile-since"></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-head"><div class="sec-title">Edit Profile</div></div>
+    <div class="cbox">
+      <div style="margin-bottom:18px">
+        <label class="flabel">Username</label>
+        <input class="finput" id="profile-username-input" placeholder="Your name" style="max-width:320px">
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button class="btn primary" onclick="Profile.save()">Save Changes</button>
+        <span id="profile-save-status" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:var(--jade)"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div>
 
 <!-- ADD TRADE MODAL -->
@@ -492,6 +572,96 @@ let liveCache = {}, spyLive = null;
 let eqCh = null, alCh = null, tsCh = null;
 let refreshTimer = null;
 let currentUser = null;
+let userProfile = { username: '' };
+
+// ── PROFILE ────────────────────────────────────────────────────────────────
+function _avatarColor(str){
+  let h=0; for(let i=0;i<str.length;i++){h=Math.imul(31,h)+str.charCodeAt(i)|0;}
+  const c=['#e74c3c','#e67e22','#f1c40f','#27ae60','#16a085','#2980b9','#8e44ad','#c0392b','#1abc9c','#d35400'];
+  return c[Math.abs(h)%c.length];
+}
+function _avatarInit(name){ return(name||'?')[0].toUpperCase(); }
+
+const Profile = {
+  async load(){
+    if(!currentUser) return;
+    try{
+      const doc=await db.collection('users').doc(currentUser.uid).get();
+      const data=doc.exists?doc.data():{};
+      userProfile.username=data.username||'';
+    }catch(_){}
+    if(!userProfile.username) userProfile.username=(currentUser.email||'').split('@')[0];
+    this.render();
+  },
+  async save(){
+    const name=(document.getElementById('profile-username-input').value||'').trim();
+    if(!name){alert('Enter a username.');return;}
+    userProfile.username=name;
+    try{
+      await db.collection('users').doc(currentUser.uid).set({username:name},{merge:true});
+      const st=document.getElementById('profile-save-status');
+      st.textContent='✓ Saved';setTimeout(()=>st.textContent='',2500);
+    }catch(e){alert('Save failed.');}
+    this.render();
+  },
+  render(){
+    const name=userProfile.username||'?';
+    const color=_avatarColor(name);
+    const init=_avatarInit(name);
+    // topbar
+    const ta=document.getElementById('topbar-avatar');
+    const tu=document.getElementById('topbar-username');
+    if(ta){ta.style.background=color;ta.textContent=init;}
+    if(tu) tu.textContent=name;
+    // profile tab card
+    const pa=document.getElementById('profile-avatar');
+    const pn=document.getElementById('profile-name');
+    const pe=document.getElementById('profile-email-txt');
+    const ps=document.getElementById('profile-since');
+    const pi=document.getElementById('profile-username-input');
+    if(pa){pa.style.background=color;pa.textContent=init;}
+    if(pn) pn.textContent=name;
+    if(pe) pe.textContent=currentUser?.email||'';
+    if(ps){const ct=currentUser?.metadata?.creationTime;ps.textContent=ct?'Member since '+new Date(ct).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):''}
+    if(pi) pi.value=name;
+    updateWelcomeBar();
+  }
+};
+
+function _timeOfDay(){
+  const h=new Date().getHours();
+  return h>=5&&h<12?'Morning':h>=12&&h<17?'Afternoon':h>=17&&h<21?'Evening':'Night';
+}
+
+function showGreeting(){
+  if(sessionStorage.getItem('etGreetingShown')) return;
+  sessionStorage.setItem('etGreetingShown','1');
+  const name=userProfile.username||(currentUser?.email||'').split('@')[0]||'';
+  const overlay=document.getElementById('greeting-overlay');
+  const text=document.getElementById('greeting-text');
+  text.textContent=`Good ${_timeOfDay()}, ${name} 👋`;
+  overlay.classList.add('show');
+  setTimeout(()=>{
+    overlay.classList.add('fade-out');
+    setTimeout(()=>{ overlay.classList.remove('show','fade-out'); },600);
+  },2500);
+}
+
+function updateWelcomeBar(){
+  const name=userProfile.username||(currentUser?.email||'').split('@')[0]||'';
+  const wg=document.getElementById('welcome-greeting');
+  const wd=document.getElementById('welcome-date');
+  if(wg) wg.textContent=`Good ${_timeOfDay()}, ${name} 👋`;
+  if(wd) wd.textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+
+function updateClock(){
+  const now=new Date();
+  const ct=document.getElementById('clock-time');
+  const cz=document.getElementById('clock-tz');
+  if(ct) ct.textContent=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+  if(cz) cz.textContent=now.toLocaleTimeString('en-US',{timeZoneName:'short'}).split(' ').pop()||'';
+}
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
 const alertCooldowns = {};
@@ -648,14 +818,18 @@ async function loadFromFirestore(){
     const data = doc.exists ? doc.data() : {};
     trades = data.trades || [];
     userTelegramChatId = data.telegramChatId || '';
+    userProfile.username = data.username || '';
     const stored = data.alertCooldowns || {};
     Object.assign(alertCooldowns, stored);
     Notif.init(data);
   }catch(e){ trades = []; Notif.init(); }
+  if(!userProfile.username) userProfile.username=(currentUser.email||'').split('@')[0];
+  Profile.render();
   renderAll();
   Tabs.init();
   startRefresh();
   News.refresh();
+  showGreeting();
 }
 
 async function save(){
@@ -1175,7 +1349,8 @@ function updateMarketTimer(){
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 updateMarketTimer();
-setInterval(updateMarketTimer, 1000);
+updateClock();
+setInterval(()=>{ updateMarketTimer(); updateClock(); }, 1000);
 
 auth.onAuthStateChanged(user => {
   currentUser = user;
@@ -1184,12 +1359,11 @@ auth.onAuthStateChanged(user => {
   if(user){
     authScreen.style.display = 'none';
     mainWrap.style.display   = '';
-    document.getElementById('user-email-display').textContent = user.email;
     loadFromFirestore();
   } else {
     mainWrap.style.display   = 'none';
     authScreen.style.display = 'flex';
-    document.getElementById('user-email-display').textContent = '';
+    userProfile = { username: '' };
     trades = [];
     if(refreshTimer) clearInterval(refreshTimer);
   }
