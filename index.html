@@ -371,6 +371,74 @@ let eqCh = null, alCh = null, tsCh = null;
 let refreshTimer = null;
 let currentUser = null;
 
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+const alertCooldowns = {};
+const Notif = {
+  _key: 'etNotifSettings',
+  load(){ try{ return JSON.parse(localStorage.getItem(this._key))||{enabled:false,threshold:3}; }catch(e){ return {enabled:false,threshold:3}; } },
+  save(){
+    const s={enabled:document.getElementById('notif-enabled').checked,threshold:parseFloat(document.getElementById('notif-threshold').value)||3};
+    localStorage.setItem(this._key,JSON.stringify(s));
+    if(currentUser){
+      db.collection('users').doc(currentUser.uid).set({alertEnabled:s.enabled,alertThreshold:s.threshold},{merge:true}).catch(()=>{});
+    }
+  },
+  init(data){
+    const s = data ? {enabled:data.alertEnabled??false,threshold:data.alertThreshold??3} : this.load();
+    document.getElementById('notif-enabled').checked=s.enabled;
+    document.getElementById('notif-threshold').value=s.threshold;
+    document.getElementById('notif-chat-id').value=userTelegramChatId||'';
+  },
+  async linkChatId(){
+    const val=document.getElementById('notif-chat-id').value.trim();
+    if(!val){ alert('Enter your Telegram chat ID first.'); return; }
+    userTelegramChatId=val;
+    await saveSettings();
+    await sendTelegram('✅ <b>Edge Tracker</b> alerts linked successfully!');
+    document.getElementById('notif-link-status').textContent='✓ Linked';
+    setTimeout(()=>document.getElementById('notif-link-status').textContent='',3000);
+  },
+  toggle(){ const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'':'none'; }
+};
+
+async function sendTelegram(text){
+  if(!userTelegramChatId) return;
+  try{
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:userTelegramChatId,text,parse_mode:'HTML'})});
+  }catch(e){}
+}
+
+function checkAlerts(rows){
+  const s=Notif.load(); if(!s.enabled) return;
+  const now=Date.now(), cooldown=3600000;
+  rows.forEach(r=>{
+    if(r.changePct!=null&&Math.abs(r.changePct)>=s.threshold){
+      const key=`${r.ticker}_daily_${r.changePct>0?'up':'down'}`;
+      if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
+        alertCooldowns[key]=now;
+        persistCooldown(key,now);
+        const emoji=r.changePct>0?'🚀':'⚠️';
+        sendTelegram(`${emoji} <b>${r.ticker}</b> is ${r.changePct>0?'up':'down'} <b>${r.changePct>0?'+':''}${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
+      }
+    }
+    if(r.al!=null&&r.al<0){
+      const key=`${r.ticker}_alpha_neg`;
+      if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
+        alertCooldowns[key]=now;
+        persistCooldown(key,now);
+        sendTelegram(`📉 <b>${r.ticker}</b> alpha turned negative\nLagging SPY by <b>${(r.al*100).toFixed(2)}%</b> since entry`);
+      }
+    } else if(r.al!=null&&r.al>=0){
+      delete alertCooldowns[`${r.ticker}_alpha_neg`];
+    }
+  });
+}
+
+function persistCooldown(key, ts){
+  if(!currentUser) return;
+  db.collection('users').doc(currentUser.uid).set({alertCooldowns:{[key]:ts}},{merge:true}).catch(()=>{});
+}
+
 // ── GATE ───────────────────────────────────────────────────────────────────
 const Gate = {
   _key: 'etGateVerified',
@@ -455,8 +523,13 @@ async function loadFromFirestore(){
   if(!currentUser) return;
   try{
     const doc = await db.collection('users').doc(currentUser.uid).get();
-    trades = (doc.exists && doc.data().trades) ? doc.data().trades : [];
-  }catch(e){ trades = []; }
+    const data = doc.exists ? doc.data() : {};
+    trades = data.trades || [];
+    userTelegramChatId = data.telegramChatId || '';
+    const stored = data.alertCooldowns || {};
+    Object.assign(alertCooldowns, stored);
+    Notif.init(data);
+  }catch(e){ trades = []; Notif.init(); }
   renderAll();
   startRefresh();
 }
@@ -464,7 +537,7 @@ async function loadFromFirestore(){
 async function save(){
   if(!currentUser) return;
   try{
-    await db.collection('users').doc(currentUser.uid).set({ trades });
+    await db.collection('users').doc(currentUser.uid).set({ trades, telegramChatId: userTelegramChatId }, { merge: true });
     setSt('✓ saved','#6fb592');
   }catch(e){ setSt('save err','#d04a45'); }
 }
