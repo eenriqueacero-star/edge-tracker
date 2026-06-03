@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edge Tracker — Edwins Investments</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1a1410;--panel:#221a13;--deep:#0e0907;--inst:#08060a;--line:#3a2d20;--lineb:#5a4730;--brass:#c8a96a;--brassb:#e6cf99;--brassd:#8a7340;--ox:#9a2828;--jade:#6fb592;--jaded:#2e5a47;--cream:#ede1c8;--creamb:#faf2dc;--creamd:#b8a98a;--creamx:#877a60;--red:#d04a45;--violet:#a387c4;--amber:#ffb000}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--cream);font-family:Georgia,serif;font-size:15px;line-height:1.6;overflow-x:hidden}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1200px;margin:0 auto;padding:28px 20px 100px}
+.topbar{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:26px;flex-wrap:wrap;gap:12px}
+.brand{font-size:28px;font-weight:700;color:var(--creamb);letter-spacing:-0.5px}
+.brand-sub{font-family:var(--mono,monospace);font-size:9px;letter-spacing:6px;text-transform:uppercase;color:var(--brass);margin-top:5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sync{font-family:monospace;font-size:10px;color:var(--creamx)}
+.btn{position:relative;display:inline-flex;align-items:center;gap:6px;padding:10px 16px;background:transparent;border:1px solid var(--lineb);color:var(--creamd);font-family:monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all 0.18s;white-space:nowrap}
+.btn:hover{background:var(--panel);color:var(--creamb);border-color:var(--creamd)}
+.btn.primary{background:linear-gradient(135deg,var(--brass),var(--brassd));color:var(--bg);border-color:var(--brass);font-weight:700}
+.btn.primary:hover{opacity:0.88}
+.btn.green{border-color:#4a8a6e;color:var(--jade)}.btn.green:hover{background:rgba(74,138,110,0.15)}
+.btn.danger{border-color:var(--ox);color:var(--red)}.btn.danger:hover{background:rgba(154,40,40,0.2)}
+.btn.sm{padding:6px 10px;font-size:9px}
+
+/* verdict */
+.verdict{margin-bottom:26px;padding:24px 28px;background:linear-gradient(135deg,var(--deep),var(--panel));border:1px solid var(--line);border-left:3px solid var(--brass)}
+.v-label{font-family:monospace;font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--brass);margin-bottom:10px}
+.v-head{font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--creamb);margin-bottom:10px;letter-spacing:-0.4px}
+.v-body{font-size:14px;color:var(--creamd);line-height:1.7}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:26px}
+.tile{background:var(--inst);padding:18px 20px}
+.tile.wide{grid-column:span 2}
+@media(max-width:560px){.tile.wide{grid-column:span 1}}
+.t-lbl{font-family:monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--creamx);margin-bottom:10px}
+.t-val{font-family:monospace;font-size:28px;font-weight:800;line-height:1;color:var(--creamb)}
+.t-val.pos{color:var(--jade)}.t-val.neg{color:var(--red)}
+.t-sub{font-family:monospace;font-size:9px;color:var(--creamx);margin-top:7px}
+
+/* live positions */
+.live-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.live-title{font-size:20px;font-weight:700;color:var(--creamb)}
+.live-badge{display:flex;align-items:center;gap:6px;font-family:monospace;font-size:10px;color:var(--amber);letter-spacing:1px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.live-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-bottom:none;margin-bottom:0}
+@media(max-width:600px){.live-sum{grid-template-columns:1fr 1fr}}
+.live-sum-cell{background:var(--deep);padding:14px 16px}
+.ls-lbl{font-family:monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--creamx);margin-bottom:6px}
+.ls-val{font-family:monospace;font-size:22px;font-weight:800}
+.live-tbl{border:1px solid var(--line);overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-family:monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--creamx);text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);background:var(--deep);white-space:nowrap}
+th.r,td.r{text-align:right}
+td{padding:10px 11px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--cream)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--panel)}
+.ticker-cell{font-family:monospace;font-weight:800;color:var(--creamb);letter-spacing:1px;font-size:14px}
+.pos{color:var(--jade)}.neg{color:var(--red)}
+.muted{color:var(--creamx);font-size:11px}
+.tag{display:inline-block;padding:1px 6px;font-family:monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;border-radius:2px;margin-left:3px}
+.tag.core{border:1px solid var(--jaded);color:var(--jade)}
+.tag.momentum{border:1px solid var(--brassd);color:var(--brass)}
+.tag.spec{border:1px solid var(--ox);color:var(--red)}
+.tag.planned{background:rgba(74,138,110,0.12);color:var(--jade)}
+.tag.impulse{background:rgba(208,74,69,0.12);color:var(--red)}
+.alpha-bar-wrap{width:90px;height:6px;background:var(--deep);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle}
+.alpha-bar{height:100%;border-radius:3px}
+.price-loading{font-family:monospace;font-size:10px;color:var(--amber);animation:blink 1s infinite}
+.change-pos{color:var(--jade)}.change-neg{color:var(--red)}
+
+/* sections */
+.sec{margin-bottom:28px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.sec-title{font-size:20px;font-weight:700;color:var(--creamb)}
+.sec-note{font-family:monospace;font-size:9px;color:var(--creamx);letter-spacing:1px}
+.cbox{background:linear-gradient(135deg,var(--panel),var(--deep));border:1px solid var(--line);padding:18px 20px}
+.ctitle{font-family:monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--brass);margin-bottom:4px}
+.csub{font-size:13px;color:var(--creamx);margin-bottom:14px;font-style:italic}
+.chart-canvas{position:relative;height:240px}
+.chart-canvas.tall{height:280px}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+@media(max-width:700px){.cgrid{grid-template-columns:1fr}}
+.bucket-row{display:grid;grid-template-columns:90px 1fr 90px;align-items:center;gap:12px;margin-bottom:10px}
+.bucket-track{position:relative;height:24px;background:var(--deep);border:1px solid var(--line);overflow:hidden}
+.bzero{position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--lineb);z-index:2}
+.bfill{position:absolute;top:0;bottom:0;transition:width 0.7s ease}
+.bfill.pos{background:linear-gradient(90deg,var(--jaded),var(--jade))}.bfill.neg{background:linear-gradient(90deg,var(--red),var(--ox))}
+.tbl-panel{border:1px solid var(--line);background:linear-gradient(135deg,var(--panel),var(--deep));overflow-x:auto}
+.empty{padding:32px;text-align:center;color:var(--creamx);font-style:italic;background:linear-gradient(135deg,var(--panel),var(--deep));border:1px solid var(--line)}
+.disclaimer{margin-top:32px;padding:20px 24px;border:1px solid var(--line);background:var(--deep);font-size:13px;line-height:1.65;color:var(--creamd)}
+.disclaimer strong{color:var(--brass)}
+
+/* modals */
+.overlay{display:none;position:fixed;inset:0;background:rgba(8,6,7,0.88);z-index:500;overflow-y:auto;padding:30px 14px;backdrop-filter:blur(3px)}
+.overlay.open{display:flex;align-items:flex-start;justify-content:center}
+.modal{background:linear-gradient(135deg,var(--panel),var(--deep));border:1px solid var(--lineb);border-top:2px solid var(--brass);max-width:660px;width:100%;padding:28px;box-shadow:0 30px 80px rgba(0,0,0,0.6);margin:auto}
+.m-title{font-size:24px;font-weight:700;color:var(--creamb);margin-bottom:5px}
+.m-sub{font-size:13px;color:var(--creamd);margin-bottom:20px;font-style:italic}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.fgrid .full{grid-column:1/-1}
+@media(max-width:500px){.fgrid{grid-template-columns:1fr}}
+.flabel{display:block;font-family:monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--brass);margin-bottom:6px}
+.finput,.ftextarea{width:100%;background:var(--deep);border:1px solid var(--line);color:var(--creamb);font-family:monospace;font-size:13px;padding:10px 12px}
+.ftextarea{font-family:Georgia,serif;resize:vertical;min-height:56px;line-height:1.5}
+.finput:focus,.ftextarea:focus{outline:none;border-color:var(--brass)}
+.fhint{font-size:11px;color:var(--creamx);margin-top:4px;font-style:italic}
+.m-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.seg{display:flex;gap:1px;background:var(--line)}
+.seg-opt{flex:1;padding:9px;background:var(--deep);font-family:monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--creamd);text-align:center;cursor:pointer;border:none;transition:all 0.15s}
+.seg-opt.active{background:var(--brass);color:var(--bg);font-weight:700}
+
+/* confirm */
+.confirm-box{background:linear-gradient(135deg,var(--panel),var(--deep));border:1px solid var(--lineb);border-top:2px solid var(--red);max-width:380px;width:100%;padding:28px;margin:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <div>
+    <div class="brand">Edge Tracker</div>
+    <div class="brand-sub">Edwins Investments</div>
+  </div>
+  <div class="actions">
+    <span class="sync" id="sync-st"></span>
+    <button class="btn" onclick="App.loadSample()">Example Data</button>
+    <button class="btn danger" onclick="App.askClear()">Clear All</button>
+    <button class="btn primary" onclick="App.openAdd()">+ Log Trade</button>
+  </div>
+</div>
+
+<p style="font-style:italic;font-size:14px;color:var(--creamx);margin-bottom:24px;max-width:560px">Every pick, measured against SPY over the exact same days. The honest answer: edge, or a good market?</p>
+
+<div class="verdict" id="verdict">
+  <div class="v-label">The Verdict</div>
+  <div class="v-head" id="v-head">No trades logged yet.</div>
+  <div class="v-body" id="v-body">Log your trades or load example data. Every pick compared to SPY over the exact same days you held it.</div>
+</div>
+
+<div class="tiles" id="tiles"></div>
+
+<!-- LIVE POSITIONS SECTION -->
+<div class="sec" id="live-sec">
+  <div class="live-header">
+    <div class="live-title">Open Positions — Live</div>
+    <div class="live-badge"><span class="live-dot"></span><span id="live-status">fetching prices…</span></div>
+  </div>
+  <div class="live-sum" id="live-sum"></div>
+  <div id="live-panel"></div>
+</div>
+
+<div class="sec">
+  <div class="sec-head"><div class="sec-title">The Edge Signal</div><div class="sec-note">does skill emerge — or flatline?</div></div>
+  <div class="cbox">
+    <div class="ctitle">Rolling Alpha t-statistic</div>
+    <div class="csub">Watch whether your edge climbs past the significance line — or hugs zero, the signature of luck.</div>
+    <div class="chart-canvas tall"><canvas id="tsChart"></canvas></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-head"><div class="sec-title">Performance vs. SPY</div><div class="sec-note">closed trades · sequential</div></div>
+  <div class="cgrid">
+    <div class="cbox"><div class="ctitle">Cumulative Return — You vs. SPY</div><div class="csub">Same money in SPY over the same holding periods.</div><div class="chart-canvas"><canvas id="eqChart"></canvas></div></div>
+    <div class="cbox"><div class="ctitle">Per-Trade Alpha</div><div class="csub">How much each pick beat or lagged SPY.</div><div class="chart-canvas"><canvas id="alChart"></canvas></div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-head"><div class="sec-title">Where The Edge Lives</div><div class="sec-note">mean alpha by bucket</div></div>
+  <div class="cbox">
+    <div class="csub">Maybe you have real edge in one kind of trade and bleed it back in another.</div>
+    <div id="bucket-panel"></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-head"><div class="sec-title">Open Positions</div><div class="sec-note">entry details & thesis</div></div>
+  <div id="open-tbl"></div>
+</div>
+
+<div class="sec">
+  <div class="sec-head"><div class="sec-title">Closed Trades</div><div class="sec-note">the track record</div></div>
+  <div id="closed-tbl"></div>
+</div>
+
+<div class="disclaimer">
+  <strong>Your benchmark: SPY. Always.</strong> Every trade measured against SPY over the exact same days. One index, never changed, no exceptions — switching benchmarks to flatter results is lying to yourself and breaks the edge-vs-luck test.
+  <br><br>
+  <strong>Live prices</strong> are fetched from Finnhub every 60 seconds. Works in pre-market and after-hours. Green = beating SPY since entry. Red = lagging.
+</div>
+</div>
+
+<!-- ADD TRADE MODAL -->
+<div class="overlay" id="add-ov" onclick="if(event.target===this)App.closeAdd()">
+<div class="modal">
+  <div class="m-title">Log a Trade</div>
+  <div class="m-sub">Write the thesis before you take the trade. That's the whole discipline.</div>
+  <div class="fgrid">
+    <div><label class="flabel">Ticker</label><input class="finput" id="f-tk" placeholder="CRDO" maxlength="8"></div>
+    <div><label class="flabel">Entry date</label><input class="finput" id="f-dt" type="date"></div>
+    <div><label class="flabel">Entry price ($)</label><input class="finput" id="f-px" type="number" step="0.01"></div>
+    <div><label class="flabel">Shares</label><input class="finput" id="f-sh" type="number" step="0.001"></div>
+    <div class="full"><label class="flabel">SPY price on entry date ($)</label><input class="finput" id="f-spy" type="number" step="0.01"><div class="fhint">Pull SPY closing price for your entry date.</div></div>
+    <div class="full"><label class="flabel">Thesis — why buying?</label><textarea class="ftextarea" id="f-th" placeholder="What does this company do, why will it be worth more, and why now?"></textarea></div>
+    <div class="full"><label class="flabel">Disproof — what would prove you wrong?</label><textarea class="ftextarea" id="f-dp" placeholder="The specific thing that would break your thesis."></textarea></div>
+    <div><label class="flabel">Bucket</label>
+      <div class="seg" id="sb"><div class="seg-opt active" data-v="core" onclick="App.seg('b','core',this)">Core</div><div class="seg-opt" data-v="momentum" onclick="App.seg('b','momentum',this)">Momentum</div><div class="seg-opt" data-v="spec" onclick="App.seg('b','spec',this)">Spec</div></div>
+    </div>
+    <div><label class="flabel">Planned or impulsive?</label>
+      <div class="seg" id="sp"><div class="seg-opt active" data-v="planned" onclick="App.seg('p','planned',this)">Planned</div><div class="seg-opt" data-v="impulse" onclick="App.seg('p','impulse',this)">Impulse</div></div>
+      <div class="fhint">Be honest — this split is revealing.</div>
+    </div>
+  </div>
+  <div class="m-actions">
+    <button class="btn" onclick="App.closeAdd()">Cancel</button>
+    <button class="btn primary" onclick="App.saveTrade()">Save Trade</button>
+  </div>
+</div>
+</div>
+
+<!-- CLOSE POSITION MODAL -->
+<div class="overlay" id="close-ov" onclick="if(event.target===this)App.closeClose()">
+<div class="modal">
+  <div class="m-title">Close Position</div>
+  <div class="m-sub" id="close-sub">Record the exit.</div>
+  <div class="fgrid">
+    <div><label class="flabel">Exit date</label><input class="finput" id="c-dt" type="date"></div>
+    <div><label class="flabel">Exit price ($)</label><input class="finput" id="c-px" type="number" step="0.01"></div>
+    <div class="full"><label class="flabel">SPY price on exit date ($)</label><input class="finput" id="c-spy" type="number" step="0.01"><div class="fhint">Pull SPY closing price for the exit date.</div></div>
+    <div class="full"><label class="flabel">Did the thesis play out?</label><textarea class="ftextarea" id="c-rv" placeholder="Right thesis, right reason? Lucky? Wrong but exited well? This is where the learning is."></textarea></div>
+  </div>
+  <div class="m-actions">
+    <button class="btn" onclick="App.closeClose()">Cancel</button>
+    <button class="btn primary" onclick="App.saveClose()">Close Trade</button>
+  </div>
+</div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="confirm-ov">
+<div class="confirm-box">
+  <div class="m-title" id="confirm-title" style="color:var(--red)">Are you sure?</div>
+  <div style="font-size:13px;color:var(--creamd);margin:10px 0 22px" id="confirm-msg"></div>
+  <div class="m-actions">
+    <button class="btn" onclick="App.confirmNo()">Cancel</button>
+    <button class="btn danger" onclick="App.confirmYes()">Confirm</button>
+  </div>
+</div>
+</div>
+
+<script>
+const KEY = 'edwins-edge-tracker-v1';
+const FINNHUB_KEY = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
+const REFRESH_MS = 60000; // refresh every 60 seconds
+
+let trades = [], confirmCb = null, closingId = null, pBucket = 'core', pPlan = 'planned';
+let liveCache = {}, spyLive = null;
+let eqCh = null, alCh = null, tsCh = null;
+let refreshTimer = null;
+
+// ── storage ────────────────────────────────────────────────────────────────
+function setSt(m, c){ const e = document.getElementById('sync-st'); if(e){ e.textContent = m; e.style.color = c||''; } }
+function load(){ try{ const r = localStorage.getItem(KEY); if(r) trades = JSON.parse(r); }catch(e){ trades = []; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(trades)); setSt('✓ saved','#6fb592'); }catch(e){ setSt('save err','#d04a45'); } }
+
+// ── math core ──────────────────────────────────────────────────────────────
+const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0;
+const stdev = a => { if(a.length<2)return 0; const m=mean(a); return Math.sqrt(a.reduce((s,x)=>s+(x-m)*(x-m),0)/(a.length-1)); };
+const tstat = a => { const n=a.length; if(n<2)return 0; const sd=stdev(a); return sd>1e-9?(mean(a)*Math.sqrt(n))/sd:0; };
+const metrics = t => { const ret=(t.exitPrice-t.entryPrice)/t.entryPrice, bench=(t.benchExit-t.benchEntry)/t.benchEntry; return {ret,bench,alpha:ret-bench,pnl:(t.exitPrice-t.entryPrice)*t.shares}; };
+const closed = () => trades.filter(t=>t.exitPrice!=null&&t.exitDate);
+const openPos = () => trades.filter(t=>!(t.exitPrice!=null&&t.exitDate));
+const pct = x => (x>=0?'+':'')+(x*100).toFixed(2)+'%';
+const money = x => (x>=0?'+$':'-$')+Math.abs(x).toLocaleString(undefined,{maximumFractionDigits:0});
+const clr = x => x>1e-9?'pos':x<-1e-9?'neg':'';
+const colorFor = x => x>1e-9?'var(--jade)':x<-1e-9?'var(--red)':'var(--creamd)';
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function buildStats(){
+  const c = closed().slice().sort((a,b)=>new Date(a.exitDate)-new Date(b.exitDate));
+  const n = c.length; if(!n) return {n:0};
+  const ms = c.map(metrics), alphas = ms.map(m=>m.alpha), pnls = ms.map(m=>m.pnl);
+  const meanAlpha=mean(alphas), tAlpha=tstat(alphas), totalPnl=pnls.reduce((x,y)=>x+y,0);
+  let cumY=1, cumB=1; const cY=[1], cB=[1], lbl=['Start'];
+  c.forEach((t,i)=>{ const m=ms[i]; cumY*=(1+m.ret); cumB*=(1+m.bench); cY.push(cumY); cB.push(cumB); lbl.push(t.ticker); });
+  const rollT=[], rollL=[];
+  for(let k=1;k<=n;k++){ rollT.push(tstat(alphas.slice(0,k))); rollL.push(c[k-1].ticker); }
+  const expP=mean(c.filter(t=>t.plan==='planned').map(t=>metrics(t).pnl));
+  const expI=mean(c.filter(t=>t.plan==='impulse').map(t=>metrics(t).pnl));
+  const nP=c.filter(t=>t.plan==='planned').length, nI=c.filter(t=>t.plan==='impulse').length;
+  const buckets={}; ['core','momentum','spec'].forEach(bk=>{const arr=c.filter(t=>t.bucket===bk).map(t=>metrics(t).alpha);buckets[bk]={meanAlpha:mean(arr),n:arr.length};});
+  return {n,meanAlpha,tAlpha,winRate:pnls.filter(p=>p>0).length/n,beatRate:alphas.filter(a=>a>1e-9).length/n,totalPnl,cumY:cumY-1,cumB:cumB-1,cY,cB,lbl,alphas,tickers:c.map(t=>t.ticker),rollT,rollL,expP,expI,nP,nI,buckets};
+}
+
+function tWord(t,n){ const a=Math.abs(t); if(n<5)return 'Far too few trades'; if(a<1)return 'Indistinguishable from luck'; if(a<2)return 'Suggestive, not significant'; if(a<3)return 'Significant — keep going'; return 'Strong signal'; }
+
+// ── LIVE PRICE FETCHING ────────────────────────────────────────────────────
+async function fetchPrice(ticker){
+  try{
+    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`);
+    const d = await r.json();
+    if(d && d.c > 0) return { price: d.c, change: d.d, changePct: d.dp, high: d.h, low: d.l, open: d.o, prevClose: d.pc };
+  }catch(e){}
+  return null;
+}
+
+async function refreshAllPrices(){
+  const tickers = [...new Set(openPos().map(t=>t.ticker).filter(Boolean))];
+  if(!tickers.length){ document.getElementById('live-status').textContent = 'no open positions'; return; }
+  document.getElementById('live-status').textContent = 'fetching…';
+  const results = await Promise.all([...tickers.map(tk=>fetchPrice(tk)), fetchPrice('SPY')]);
+  tickers.forEach((tk,i)=>{ if(results[i]) liveCache[tk]=results[i]; });
+  const spyResult = results[tickers.length];
+  if(spyResult) spyLive = spyResult;
+  const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('live-status').textContent = `updated ${now}`;
+  renderLive();
+}
+
+function startRefresh(){
+  if(refreshTimer) clearInterval(refreshTimer);
+  refreshAllPrices();
+  refreshTimer = setInterval(refreshAllPrices, REFRESH_MS);
+}
+
+// ── RENDER LIVE SECTION ────────────────────────────────────────────────────
+function renderLive(){
+  const o = openPos();
+  const sumEl = document.getElementById('live-sum');
+  const panEl = document.getElementById('live-panel');
+
+  if(!o.length){
+    sumEl.innerHTML='';
+    panEl.innerHTML='<div class="empty">No open positions. Log a trade to begin tracking.</div>';
+    return;
+  }
+
+  // Build rows
+  const rows = o.map(t=>{
+    const live = liveCache[t.ticker];
+    const now = live?.price||null;
+    const spyNow = spyLive?.price||null;
+    const yr = now&&t.entryPrice?(now-t.entryPrice)/t.entryPrice:null;
+    const br = spyNow&&t.benchEntry?(spyNow-t.benchEntry)/t.benchEntry:null;
+    const al = yr!=null&&br!=null?yr-br:null;
+    const pnl = now?(now-t.entryPrice)*t.shares:null;
+    const mktVal = now?now*t.shares:null;
+    return {...t,now,yr,br,al,pnl,mktVal,change:live?.change||null,changePct:live?.changePct||null};
+  });
+
+  const validRows = rows.filter(r=>r.al!=null);
+  const totalPnl = rows.reduce((s,r)=>s+(r.pnl||0),0);
+  const totalMktVal = rows.reduce((s,r)=>s+(r.mktVal||0),0);
+  const avgAlpha = validRows.length?mean(validRows.map(r=>r.al)):null;
+  const beating = validRows.filter(r=>r.al>0).length;
+
+  // Summary tiles
+  sumEl.innerHTML=`
+    <div class="live-sum-cell"><div class="ls-lbl">Total Market Value</div><div class="ls-val" style="color:var(--creamb)">${totalMktVal?'$'+totalMktVal.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}</div></div>
+    <div class="live-sum-cell"><div class="ls-lbl">Unrealized P&L</div><div class="ls-val" style="color:${colorFor(totalPnl)}">${totalPnl?money(totalPnl):'—'}</div></div>
+    <div class="live-sum-cell"><div class="ls-lbl">Avg Alpha vs SPY</div><div class="ls-val" style="color:${colorFor(avgAlpha)}">${avgAlpha!=null?pct(avgAlpha):'—'}</div></div>
+    <div class="live-sum-cell"><div class="ls-lbl">Beating SPY</div><div class="ls-val" style="color:var(--creamb)">${validRows.length?beating+' / '+validRows.length:'—'}</div></div>`;
+
+  const maxAbs = Math.max(0.001,...validRows.map(r=>Math.abs(r.al)));
+  const spyRow = spyLive?`<tr style="background:rgba(200,169,106,0.05)">
+    <td colspan="2"><span class="ticker-cell" style="color:var(--brass)">SPY</span><span class="muted" style="margin-left:8px">benchmark</span></td>
+    <td class="r" style="font-family:monospace;font-weight:700;color:var(--brass)">$${spyLive.price.toFixed(2)}</td>
+    <td class="r ${spyLive.changePct>=0?'pos':'neg'}">${spyLive.changePct>=0?'+':''}${spyLive.changePct?.toFixed(2)}%</td>
+    <td colspan="5" class="muted">S&P 500 ETF — your benchmark</td>
+  </tr>`:'';
+
+  panEl.innerHTML=`<div class="live-tbl"><table>
+    <thead><tr>
+      <th>Ticker</th><th>Entry</th>
+      <th class="r">Live Price</th><th class="r">Day Change</th>
+      <th class="r">Your Return</th><th class="r">SPY Return</th>
+      <th class="r">Alpha</th><th class="r">Unreal P&L</th>
+      <th>vs SPY</th>
+    </tr></thead>
+    <tbody>
+    ${rows.map(r=>{
+      const barW = r.al!=null?(Math.abs(r.al)/maxAbs*80).toFixed(1):0;
+      const barColor = r.al>0?'var(--jade)':'var(--red)';
+      const priceCell = r.now
+        ? `<span style="font-family:monospace;font-weight:700;color:var(--creamb)">$${r.now.toFixed(2)}</span>`
+        : `<span class="price-loading">fetching…</span>`;
+      const changeCell = r.changePct!=null
+        ? `<span class="${r.changePct>=0?'change-pos':'change-neg'}" style="font-family:monospace">${r.changePct>=0?'+':''}${r.changePct.toFixed(2)}% ${r.change!=null?'('+(r.change>=0?'+':'')+r.change.toFixed(2)+')':''}</span>`
+        : '—';
+      return `<tr>
+        <td><span class="ticker-cell">${esc(r.ticker)}</span><span class="tag ${r.bucket}">${r.bucket}</span></td>
+        <td><div class="muted">$${r.entryPrice.toFixed(2)}</div><div class="muted">${r.entryDate}</div></td>
+        <td class="r">${priceCell}</td>
+        <td class="r">${changeCell}</td>
+        <td class="r ${clr(r.yr)}" style="font-family:monospace">${r.yr!=null?pct(r.yr):'—'}</td>
+        <td class="r ${clr(r.br)}" style="font-family:monospace">${r.br!=null?pct(r.br):'—'}</td>
+        <td class="r" style="font-family:monospace;font-weight:700;color:${colorFor(r.al)}">${r.al!=null?pct(r.al):'—'}</td>
+        <td class="r ${clr(r.pnl)}" style="font-family:monospace">${r.pnl!=null?money(r.pnl):'—'}</td>
+        <td style="width:110px;padding-right:12px">${r.al!=null?`<div class="alpha-bar-wrap"><div class="alpha-bar" style="width:${barW}%;background:${barColor}"></div></div>`:'—'}</td>
+      </tr>`;
+    }).join('')}
+    ${spyRow}
+    </tbody>
+  </table></div>
+  <div style="font-family:monospace;font-size:10px;color:var(--creamx);padding:8px 12px;border:1px solid var(--line);border-top:none;background:var(--deep)">
+    Live prices via Finnhub · refreshes every 60s · SPY: ${spyLive?'$'+spyLive.price.toFixed(2):'loading…'}
+    <button onclick="refreshAllPrices()" style="background:none;border:none;color:var(--brass);font-family:monospace;font-size:10px;cursor:pointer;margin-left:12px">↻ refresh now</button>
+  </div>`;
+}
+
+// ── RENDER VERDICT ─────────────────────────────────────────────────────────
+function renderVerdict(s){
+  const h=document.getElementById('v-head'), b=document.getElementById('v-body'), v=document.getElementById('verdict');
+  v.style.borderLeftColor='var(--brass)';
+  if(!s.n){h.textContent='No trades logged yet.';b.textContent='Log your trades or load example data.';return;}
+  if(s.n<5){v.style.borderLeftColor='var(--violet)';h.textContent=`Too early — ${s.n} trade${s.n>1?'s':''} only.`;b.innerHTML=`Mean alpha of <strong>${pct(s.meanAlpha)}</strong> could be noise. Need 10+ trades.`;return;}
+  if(s.tAlpha>=2&&s.meanAlpha>0){v.style.borderLeftColor='var(--jade)';h.textContent='Evidence of edge — provisional, but real.';b.innerHTML=`Across <strong>${s.n} trades</strong>, mean alpha <strong>${pct(s.meanAlpha)}</strong>, t-stat <strong>${s.tAlpha.toFixed(2)}</strong>. Statistically meaningful — keep measuring.`;return;}
+  if(s.meanAlpha<=0){v.style.borderLeftColor='var(--amber)';h.textContent='SPY is doing the work — not your picking.';b.innerHTML=`Mean alpha ${pct(s.meanAlpha)} across ${s.n} trades. You'd have done better just holding SPY.`;return;}
+  v.style.borderLeftColor='var(--violet)';h.textContent='Positive — not yet distinguishable from luck.';b.innerHTML=`Mean alpha <strong>${pct(s.meanAlpha)}</strong>, t-stat <strong>${s.tAlpha.toFixed(2)}</strong>. Keep logging.`;
+}
+
+// ── RENDER TILES ───────────────────────────────────────────────────────────
+function renderTiles(s){
+  const el=document.getElementById('tiles');
+  if(!s.n){el.innerHTML=`<div class="tile wide"><div class="t-lbl">Awaiting Data</div><div class="t-val">—</div><div class="t-sub">Log closed trades to populate the dashboard.</div></div>`;return;}
+  el.innerHTML=`
+    <div class="tile wide"><div class="t-lbl">Mean Alpha per Trade — the headline</div><div class="t-val ${clr(s.meanAlpha)}">${pct(s.meanAlpha)}</div><div class="t-sub">Your average pick beat SPY by this much per trade.</div></div>
+    <div class="tile"><div class="t-lbl">Your Cum. Return</div><div class="t-val ${clr(s.cumY)}">${pct(s.cumY)}</div><div class="t-sub">Sequential, closed trades</div></div>
+    <div class="tile"><div class="t-lbl">SPY Over Same Days</div><div class="t-val ${clr(s.cumB)}">${pct(s.cumB)}</div><div class="t-sub">What holding SPY earned</div></div>
+    <div class="tile"><div class="t-lbl">Alpha t-stat</div><div class="t-val ${clr(s.tAlpha)}">${s.tAlpha.toFixed(2)}</div><div class="t-sub">${tWord(s.tAlpha,s.n)}</div></div>
+    <div class="tile"><div class="t-lbl">Beat-SPY Rate</div><div class="t-val">${Math.round(s.beatRate*100)}%</div><div class="t-sub">${Math.round(s.beatRate*s.n)} of ${s.n} trades</div></div>
+    <div class="tile"><div class="t-lbl">Win Rate</div><div class="t-val">${Math.round(s.winRate*100)}%</div><div class="t-sub">Made money on the trade</div></div>
+    <div class="tile"><div class="t-lbl">Total P&amp;L</div><div class="t-val ${clr(s.totalPnl)}">${money(s.totalPnl)}</div><div class="t-sub">Realized, closed trades</div></div>
+    <div class="tile"><div class="t-lbl">Planned vs Impulsive</div><div class="t-val" style="font-size:20px">${(s.nP?money(s.expP):'—')+' / '+(s.nI?money(s.expI):'—')}</div><div class="t-sub">Avg $/trade · the cost of impulse</div></div>`;
+}
+
+// ── RENDER BUCKETS ─────────────────────────────────────────────────────────
+function renderBuckets(s){
+  const el=document.getElementById('bucket-panel');
+  if(!s.n){el.innerHTML='<div class="muted" style="font-style:italic;color:var(--creamx)">No data yet.</div>';return;}
+  const maxA=Math.max(0.001,...['core','momentum','spec'].map(k=>Math.abs(s.buckets[k].meanAlpha)));
+  el.innerHTML=['core','momentum','spec'].map(bk=>{
+    const d=s.buckets[bk];
+    if(!d.n)return`<div class="bucket-row"><span style="font-family:monospace;font-size:10px;text-transform:uppercase;color:var(--creamd)">${bk}</span><div class="bucket-track"><div class="bzero"></div></div><span style="font-family:monospace;font-size:10px;color:var(--creamx)">no trades</span></div>`;
+    const f=Math.abs(d.meanAlpha)/maxA*0.5,pos=d.meanAlpha>=0,l=pos?50:(50-f*100);
+    return`<div class="bucket-row">
+      <span style="font-family:monospace;font-size:10px;text-transform:uppercase;color:var(--creamd)">${bk} (${d.n})</span>
+      <div class="bucket-track"><div class="bzero"></div><div class="bfill ${pos?'pos':'neg'}" style="width:0%;left:${l.toFixed(1)}%" data-w="${(f*100).toFixed(1)}%"></div></div>
+      <span style="font-family:monospace;font-size:12px;font-weight:700;text-align:right;color:${pos?'var(--jade)':'var(--red)'}">${pct(d.meanAlpha)}</span>
+    </div>`;
+  }).join('');
+  requestAnimationFrame(()=>document.querySelectorAll('.bfill').forEach(f=>f.style.width=f.dataset.w));
+}
+
+// ── RENDER TABLES ──────────────────────────────────────────────────────────
+function renderOpenTbl(){
+  const o=openPos(),el=document.getElementById('open-tbl');
+  if(!o.length){el.innerHTML='<div class="empty">No open positions.</div>';return;}
+  el.innerHTML=`<div class="tbl-panel"><table><thead><tr><th>Ticker</th><th>Entry</th><th class="r">Price</th><th class="r">Shares</th><th>Thesis</th><th></th></tr></thead><tbody>
+  ${o.map(t=>`<tr>
+    <td><span class="ticker-cell">${esc(t.ticker)}</span><span class="tag ${t.bucket}">${t.bucket}</span><span class="tag ${t.plan}">${t.plan}</span></td>
+    <td class="muted">${t.entryDate}</td><td class="r" style="font-family:monospace">$${t.entryPrice.toFixed(2)}</td>
+    <td class="r" style="font-family:monospace">${(+t.shares).toLocaleString(undefined,{maximumFractionDigits:4})}</td>
+    <td style="font-size:12px;color:var(--creamd);max-width:240px;line-height:1.5">${esc(t.thesis)||'<em style="color:var(--creamx)">— no thesis —</em>'}</td>
+    <td style="white-space:nowrap"><button class="btn sm" onclick="App.openClose('${t.id}')">Close</button> <button class="btn sm danger" onclick="App.askDel('${t.id}','${esc(t.ticker)}')">✕</button></td>
+  </tr>`).join('')}</tbody></table></div>`;
+}
+
+function renderClosedTbl(){
+  const c=closed().sort((a,b)=>new Date(b.exitDate)-new Date(a.exitDate)),el=document.getElementById('closed-tbl');
+  if(!c.length){el.innerHTML='<div class="empty">No closed trades yet.</div>';return;}
+  el.innerHTML=`<div class="tbl-panel"><table><thead><tr><th>Ticker</th><th>Period</th><th class="r">Return</th><th class="r">SPY</th><th class="r">Alpha</th><th class="r">P&L</th><th>Review</th><th></th></tr></thead><tbody>
+  ${c.map(t=>{const m=metrics(t);return`<tr>
+    <td><span class="ticker-cell">${esc(t.ticker)}</span><span class="tag ${t.bucket}">${t.bucket}</span><span class="tag ${t.plan}">${t.plan}</span></td>
+    <td class="muted">${t.entryDate}<br>→${t.exitDate}</td>
+    <td class="r ${clr(m.ret)}" style="font-family:monospace">${pct(m.ret)}</td>
+    <td class="r ${clr(m.bench)}" style="font-family:monospace">${pct(m.bench)}</td>
+    <td class="r" style="font-family:monospace;font-weight:700;color:${colorFor(m.alpha)}">${pct(m.alpha)}</td>
+    <td class="r ${clr(m.pnl)}" style="font-family:monospace">${money(m.pnl)}</td>
+    <td style="font-size:12px;color:var(--creamd);max-width:200px;line-height:1.5">${esc(t.review)||'<em style="color:var(--creamx)">—</em>'}</td>
+    <td><button class="btn sm danger" onclick="App.askDel('${t.id}','${esc(t.ticker)}')">✕</button></td>
+  </tr>`;}).join('')}</tbody></table></div>`;
+}
+
+// ── RENDER CHARTS ──────────────────────────────────────────────────────────
+function renderCharts(s){
+  const g='rgba(90,71,48,0.2)',tk='#877a60';
+  Chart.defaults.font.family="'JetBrains Mono',monospace";
+  Chart.defaults.font.size=10;
+  Chart.defaults.animation.duration=900;
+  if(tsCh)tsCh.destroy();if(eqCh)eqCh.destroy();if(alCh)alCh.destroy();
+  if(!s.n)return;
+  tsCh=new Chart(document.getElementById('tsChart'),{type:'line',data:{labels:s.rollL,datasets:[
+    {label:'Your alpha t-stat',data:s.rollT,borderColor:'#e6cf99',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const gr=c.createLinearGradient(0,0,0,280);gr.addColorStop(0,'rgba(230,207,153,0.25)');gr.addColorStop(1,'rgba(230,207,153,0)');return gr;},borderWidth:2.5,tension:0.3,fill:true,pointRadius:4,pointBackgroundColor:'#e6cf99',pointBorderColor:'#1a1410',pointBorderWidth:1.5},
+    {label:'Significance (t=2)',data:s.rollT.map(()=>2),borderColor:'#6fb592',borderWidth:1.5,borderDash:[6,5],pointRadius:0,fill:false},
+    {label:'',data:s.rollT.map(()=>-2),borderColor:'rgba(208,74,69,0.5)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#ede1c8',boxWidth:14,filter:i=>i.text!==''}}},scales:{x:{grid:{color:g},ticks:{color:tk}},y:{grid:{color:g},ticks:{color:tk},title:{display:true,text:'t-stat',color:tk}}}}});
+  eqCh=new Chart(document.getElementById('eqChart'),{type:'line',data:{labels:s.lbl,datasets:[
+    {label:'You',data:s.cY.map(x=>+((x-1)*100).toFixed(2)),borderColor:'#6fb592',backgroundColor:(ctx)=>{const c=ctx.chart.ctx;const gr=c.createLinearGradient(0,0,0,240);gr.addColorStop(0,'rgba(111,181,146,0.2)');gr.addColorStop(1,'rgba(111,181,146,0)');return gr;},borderWidth:2.5,tension:0.3,fill:true,pointRadius:3},
+    {label:'SPY',data:s.cB.map(x=>+((x-1)*100).toFixed(2)),borderColor:'#c8a96a',borderWidth:2,borderDash:[5,4],tension:0.3,fill:false,pointRadius:2}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#ede1c8',boxWidth:14}}},scales:{x:{grid:{color:g},ticks:{color:tk}},y:{grid:{color:g},ticks:{color:tk,callback:v=>v+'%'}}}}});
+  alCh=new Chart(document.getElementById('alChart'),{type:'bar',data:{labels:s.tickers,datasets:[{label:'Alpha',data:s.alphas.map(a=>+(a*100).toFixed(2)),backgroundColor:s.alphas.map(a=>a>0?'rgba(111,181,146,0.75)':'rgba(208,74,69,0.75)'),borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:tk}},y:{grid:{color:g},ticks:{color:tk,callback:v=>v+'%'}}}}});
+}
+
+function renderAll(){
+  const s=buildStats();
+  renderVerdict(s);renderTiles(s);renderBuckets(s);renderOpenTbl();renderClosedTbl();renderCharts(s);
+  renderLive();
+}
+
+// ── ACTIONS ────────────────────────────────────────────────────────────────
+const App = {
+  openAdd(){
+    ['f-tk','f-px','f-sh','f-spy','f-th','f-dp'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f-dt').value=new Date().toISOString().slice(0,10);
+    pBucket='core';pPlan='planned';
+    document.querySelectorAll('#sb .seg-opt').forEach(o=>o.classList.toggle('active',o.dataset.v==='core'));
+    document.querySelectorAll('#sp .seg-opt').forEach(o=>o.classList.toggle('active',o.dataset.v==='planned'));
+    document.getElementById('add-ov').classList.add('open');
+  },
+  closeAdd(){ document.getElementById('add-ov').classList.remove('open'); },
+  seg(g,v,el){ if(g==='b')pBucket=v;else pPlan=v; el.parentElement.querySelectorAll('.seg-opt').forEach(o=>o.classList.remove('active')); el.classList.add('active'); },
+  saveTrade(){
+    const ticker=(document.getElementById('f-tk').value||'').toUpperCase().trim();
+    const entryDate=document.getElementById('f-dt').value;
+    const entryPrice=parseFloat(document.getElementById('f-px').value);
+    const shares=parseFloat(document.getElementById('f-sh').value);
+    const benchEntry=parseFloat(document.getElementById('f-spy').value);
+    if(!ticker||!entryDate||!(entryPrice>0)||!(shares>0)||!(benchEntry>0)){alert('Fill in all required fields.');return;}
+    trades.push({id:'t'+Date.now(),ticker,entryDate,entryPrice,shares,benchEntry,thesis:document.getElementById('f-th').value.trim(),disproof:document.getElementById('f-dp').value.trim(),bucket:pBucket,plan:pPlan});
+    save();this.closeAdd();renderAll();startRefresh();
+  },
+  openClose(id){
+    closingId=id;const t=trades.find(x=>x.id===id);
+    document.getElementById('close-sub').innerHTML=`Closing <strong>${esc(t.ticker)}</strong> — entered ${t.entryDate} at $${t.entryPrice.toFixed(2)}.`;
+    document.getElementById('c-dt').value=new Date().toISOString().slice(0,10);
+    document.getElementById('c-px').value=liveCache[t.ticker]?.price?.toFixed(2)||'';
+    document.getElementById('c-spy').value=spyLive?.price?.toFixed(2)||'';
+    document.getElementById('c-rv').value='';
+    document.getElementById('close-ov').classList.add('open');
+  },
+  closeClose(){ document.getElementById('close-ov').classList.remove('open');closingId=null; },
+  saveClose(){
+    const t=trades.find(x=>x.id===closingId);if(!t)return;
+    const exitDate=document.getElementById('c-dt').value;
+    const exitPrice=parseFloat(document.getElementById('c-px').value);
+    const benchExit=parseFloat(document.getElementById('c-spy').value);
+    if(!exitDate||!(exitPrice>0)||!(benchExit>0)){alert('Fill in exit date, exit price, and SPY price.');return;}
+    t.exitDate=exitDate;t.exitPrice=exitPrice;t.benchExit=benchExit;t.review=document.getElementById('c-rv').value.trim();
+    save();this.closeClose();renderAll();
+  },
+  askDel(id,name){
+    document.getElementById('confirm-title').textContent='Delete trade?';
+    document.getElementById('confirm-msg').textContent=`Delete ${name}? This cannot be undone.`;
+    confirmCb=()=>{trades=trades.filter(x=>x.id!==id);save();renderAll();};
+    document.getElementById('confirm-ov').classList.add('open');
+  },
+  askClear(){
+    document.getElementById('confirm-title').textContent='Clear ALL trades?';
+    document.getElementById('confirm-msg').textContent='This deletes every trade permanently.';
+    confirmCb=()=>{trades=[];save();renderAll();};
+    document.getElementById('confirm-ov').classList.add('open');
+  },
+  confirmYes(){ document.getElementById('confirm-ov').classList.remove('open');if(confirmCb){confirmCb();confirmCb=null;} },
+  confirmNo(){ document.getElementById('confirm-ov').classList.remove('open');confirmCb=null; },
+  loadSample(){
+    document.getElementById('confirm-title').textContent='Load example data?';
+    document.getElementById('confirm-msg').textContent='This will replace your current trades.';
+    confirmCb=()=>{
+      trades=[
+        {id:'s1',ticker:'AAPL',entryDate:'2024-01-08',entryPrice:185.56,shares:8,benchEntry:474.60,exitDate:'2024-03-15',exitPrice:172.62,benchExit:512.00,thesis:'Services margin expansion + Vision Pro launch catalyst.',disproof:'Loses 180 support on volume.',bucket:'momentum',plan:'planned',review:'Wrong. Vision Pro fizzled, stock faded. Exited at my stop.'},
+        {id:'s2',ticker:'NVDA',entryDate:'2024-02-12',entryPrice:72.20,shares:20,benchEntry:500.00,exitDate:'2024-06-18',exitPrice:135.58,benchExit:548.00,thesis:'Data-center demand far ahead of supply.',disproof:'Guidance disappoints.',bucket:'core',plan:'planned',review:'Right thesis, right reason. Earnings crushed it.'},
+        {id:'s3',ticker:'GME',entryDate:'2024-05-13',entryPrice:30.00,shares:15,benchEntry:520.00,exitDate:'2024-05-20',exitPrice:21.00,benchExit:528.00,thesis:'Roaring Kitty posted, momentum play.',disproof:'Hype fades within days.',bucket:'spec',plan:'impulse',review:'Pure impulse. Chased the meme. Got burned.'},
+        {id:'s4',ticker:'MSFT',entryDate:'2024-03-04',entryPrice:414.92,shares:3,benchEntry:512.00,exitDate:'2024-07-22',exitPrice:428.90,benchExit:560.00,thesis:'Copilot monetization + Azure reaccelerating.',disproof:'Azure decelerates two quarters running.',bucket:'core',plan:'planned',review:'Modestly right but lagged the index.'},
+        {id:'s5',ticker:'SOFI',entryDate:'2024-04-01',entryPrice:7.50,shares:60,benchEntry:523.00,exitDate:'2024-08-05',exitPrice:6.40,benchExit:530.00,thesis:'Bank charter leverage, student-loan tailwind.',disproof:'Loan-loss provisions spike.',bucket:'spec',plan:'impulse',review:'Impulse add after Reddit thread. No real edge.'},
+        {id:'s6',ticker:'AMZN',entryDate:'2024-05-20',entryPrice:183.50,shares:6,benchEntry:529.00,exitDate:'2024-09-10',exitPrice:186.49,benchExit:550.00,thesis:'AWS margin recovery + ads compounding.',disproof:'AWS growth stalls below 15%.',bucket:'core',plan:'planned',review:'Roughly tracked the index. Market did the work.'}
+      ];
+      save();renderAll();
+    };
+    document.getElementById('confirm-ov').classList.add('open');
+  }
+};
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')['add-ov','close-ov','confirm-ov'].forEach(id=>document.getElementById(id).classList.remove('open'));});
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+load();
+renderAll();
+startRefresh();
+</script>
+</body>
+</html>
