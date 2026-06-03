@@ -133,10 +133,6 @@ tr:hover td{background:rgba(0,162,255,0.07)}
 #gate-screen{position:fixed;inset:0;background:var(--bg);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px}
 .gate-hint{font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--creamx);margin-top:14px;text-align:center;letter-spacing:1px}
 
-/* gate screen */
-#gate-screen{position:fixed;inset:0;background:var(--bg);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px}
-.gate-hint{font-family:monospace;font-size:11px;color:var(--creamx);margin-top:14px;text-align:center;letter-spacing:1px}
-
 /* auth screen */
 #auth-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:2000;align-items:center;justify-content:center;padding:20px}
 .auth-panel{background:var(--panel);border:1px solid var(--lineb);border-top:3px solid var(--brass);max-width:420px;width:100%;padding:36px 32px;box-shadow:0 30px 80px rgba(0,0,0,0.7);border-radius:16px}
@@ -147,6 +143,78 @@ tr:hover td{background:rgba(0,162,255,0.07)}
 .auth-sep{height:1px;background:var(--line);margin:20px 0}
 .auth-toggle-btn{background:none;border:none;color:var(--brass);font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;padding:0}
 .auth-toggle-btn:hover{color:var(--brassb)}
+
+/* ── MOBILE ──────────────────────────────────────────────────────────────── */
+@media(max-width:768px){
+  .wrap{padding:14px 12px 80px}
+
+  /* topbar stacks vertically */
+  .topbar{flex-direction:column;align-items:stretch;gap:10px;padding:14px 16px;border-radius:12px}
+  .topbar>div:first-child{display:flex;justify-content:space-between;align-items:center}
+  .brand{font-size:22px}
+  .brand-sub{font-size:9px}
+  .market-timer{display:flex;align-items:center;gap:12px;text-align:left;min-width:unset;width:100%;padding:8px 12px;justify-content:space-between}
+  .mt-label{margin-bottom:0;font-size:9px}
+  .mt-count{font-size:22px;letter-spacing:1px}
+  .mt-sub{margin-top:0}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .actions .btn{justify-content:center;min-height:42px;padding:8px 10px;font-size:10px}
+  .actions .sync{grid-column:1/-1;text-align:center}
+  #user-email-display{display:none}
+
+  /* verdict */
+  .verdict{padding:14px 16px}
+
+  /* tiles — 2 columns */
+  .tiles{grid-template-columns:1fr 1fr;gap:8px}
+  .tile{padding:14px 12px}
+  .t-val{font-size:26px}
+
+  /* live summary already 2-col at 600px — just tighten padding */
+  .live-sum-cell{padding:12px}
+  .ls-val{font-size:20px}
+
+  /* tables — horizontal scroll */
+  .live-tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .live-tbl table{min-width:680px}
+  .tbl-panel{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl-panel table{min-width:560px}
+
+  /* charts */
+  .cbox{padding:14px}
+  .chart-canvas{height:200px}
+  .chart-canvas.tall{height:220px}
+
+  /* bucket bars */
+  .bucket-row{grid-template-columns:80px 1fr 68px;gap:8px}
+
+  /* sections */
+  .sec-title{font-size:18px}
+  .live-title{font-size:18px}
+
+  /* modals — bottom sheet */
+  .overlay{padding:0;align-items:flex-end}
+  .overlay.open{align-items:flex-end}
+  .modal{border-radius:20px 20px 0 0;max-height:90vh;overflow-y:auto;margin:0;width:100%;padding:20px 16px}
+  .confirm-box{border-radius:20px 20px 0 0;margin:0;width:100%;padding:20px 16px}
+  .m-actions{flex-direction:column-reverse}
+  .m-actions .btn{width:100%;justify-content:center;min-height:44px}
+
+  /* notification panel */
+  #notif-panel{padding:14px}
+
+  /* auth / gate panels */
+  .auth-panel{padding:28px 20px;border-radius:12px}
+
+  /* disclaimer */
+  .disclaimer{font-size:12px;padding:14px 16px}
+}
+
+@media(max-width:480px){
+  .tiles{grid-template-columns:1fr}
+  .tile.wide{grid-column:span 1}
+  .actions{grid-template-columns:1fr 1fr}
+}
 </style>
 </head>
 <body>
@@ -204,10 +272,12 @@ tr:hover td{background:rgba(0,162,255,0.07)}
     <div class="brand">Edge Tracker</div>
     <div class="brand-sub">Edwins Investments</div>
   </div>
-  <div class="market-timer">
-    <div class="mt-label" id="mt-label">Market Opens In</div>
+  <div class="market-timer" id="market-timer">
+    <div>
+      <div class="mt-label" id="mt-label">Market Opens In</div>
+      <div class="mt-sub" id="mt-sub">NYSE · NASDAQ · 9:30 AM ET</div>
+    </div>
     <div class="mt-count" id="mt-count">--:--:--</div>
-    <div class="mt-sub" id="mt-sub">NYSE · NASDAQ · 9:30 AM ET</div>
   </div>
   <div class="actions">
     <span class="sync" id="sync-st"></span>
