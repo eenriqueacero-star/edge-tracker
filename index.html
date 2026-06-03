@@ -221,16 +221,28 @@ tr:hover td{background:rgba(0,162,255,0.07)}
 </div>
 
 <!-- NOTIFICATION SETTINGS PANEL -->
-<div id="notif-panel" style="display:none;margin-bottom:16px;padding:16px 20px;background:var(--inst);border:1px solid var(--line);border-radius:12px;border-left:4px solid var(--amber)">
-  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+<div id="notif-panel" style="display:none;margin-bottom:16px;padding:18px 20px;background:var(--inst);border:1px solid var(--line);border-radius:12px;border-left:4px solid var(--amber)">
+  <div style="display:flex;flex-direction:column;gap:14px">
     <span style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:1px">🔔 Telegram Alerts</span>
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--creamd);cursor:pointer">
-      <input type="checkbox" id="notif-enabled" onchange="Notif.save()"> Enabled
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--creamd)">
-      Daily move ±<input class="finput" id="notif-threshold" type="number" min="0.5" max="20" step="0.5" value="3" style="width:65px;padding:5px 8px;display:inline-block" onchange="Notif.save()">%
-    </label>
-    <span style="font-size:11px;color:var(--creamx);font-weight:600">Notifies when a position moves ±threshold% in a day, or when alpha turns negative vs SPY. 1-hour cooldown per ticker.</span>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:700;color:var(--creamd)">Your Telegram Chat ID:</span>
+      <input class="finput" id="notif-chat-id" type="text" placeholder="e.g. 123456789" style="width:160px;padding:5px 10px;display:inline-block">
+      <button class="btn" onclick="Notif.linkChatId()" style="padding:6px 14px">Link & Test</button>
+      <span id="notif-link-status" style="font-size:12px;font-weight:700;color:var(--jade)"></span>
+    </div>
+    <div style="font-size:11px;color:var(--creamx);font-weight:600">
+      To get your chat ID: message <b style="color:var(--brass)">@NotifyYourStockBot</b> on Telegram, then visit
+      <b style="color:var(--creamd)">api.telegram.org/bot8793038031:AAF2Zwdm9JZtDWZ7zmR8b9ntqVThUq4txpo/getUpdates</b> and copy the <b>id</b> inside "chat".
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-top:4px;border-top:1px solid var(--line)">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--creamd);cursor:pointer">
+        <input type="checkbox" id="notif-enabled" onchange="Notif.save()"> Alerts enabled
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--creamd)">
+        Daily move ±<input class="finput" id="notif-threshold" type="number" min="0.5" max="20" step="0.5" value="3" style="width:65px;padding:5px 8px;display:inline-block" onchange="Notif.save()">%
+      </label>
+      <span style="font-size:11px;color:var(--creamx);font-weight:600">Fires when a position moves ±threshold% in a day or alpha turns negative vs SPY. 1-hour cooldown per ticker.</span>
+    </div>
   </div>
 </div>
 
@@ -384,9 +396,9 @@ const auth = firebase.auth();
 const FINNHUB_KEY = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
 const REFRESH_MS = 5000;
 const TELEGRAM_TOKEN = '8793038031:AAF2Zwdm9JZtDWZ7zmR8b9ntqVThUq4txpo';
-const TELEGRAM_CHAT  = '8162576417';
 
 let trades = [], confirmCb = null, closingId = null, pBucket = 'core', pPlan = 'planned';
+let userTelegramChatId = '';
 let liveCache = {}, spyLive = null;
 let eqCh = null, alCh = null, tsCh = null;
 let refreshTimer = null;
@@ -405,13 +417,24 @@ const Notif = {
     const s=this.load();
     document.getElementById('notif-enabled').checked=s.enabled;
     document.getElementById('notif-threshold').value=s.threshold;
+    document.getElementById('notif-chat-id').value=userTelegramChatId||'';
+  },
+  async linkChatId(){
+    const val=document.getElementById('notif-chat-id').value.trim();
+    if(!val){ alert('Enter your Telegram chat ID first.'); return; }
+    userTelegramChatId=val;
+    await saveSettings();
+    await sendTelegram('✅ <b>Edge Tracker</b> alerts linked successfully!');
+    document.getElementById('notif-link-status').textContent='✓ Linked';
+    setTimeout(()=>document.getElementById('notif-link-status').textContent='',3000);
   },
   toggle(){ const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'':'none'; }
 };
 
 async function sendTelegram(text){
+  if(!userTelegramChatId) return;
   try{
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TELEGRAM_CHAT,text,parse_mode:'HTML'})});
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:userTelegramChatId,text,parse_mode:'HTML'})});
   }catch(e){}
 }
 
@@ -523,16 +546,24 @@ async function loadFromFirestore(){
   if(!currentUser) return;
   try{
     const doc = await db.collection('users').doc(currentUser.uid).get();
-    trades = (doc.exists && doc.data().trades) ? doc.data().trades : [];
+    const data = doc.exists ? doc.data() : {};
+    trades = data.trades || [];
+    userTelegramChatId = data.telegramChatId || '';
+    Notif.init();
   }catch(e){ trades = []; }
   renderAll();
   startRefresh();
 }
 
+async function saveSettings(){
+  if(!currentUser) return;
+  try{ await db.collection('users').doc(currentUser.uid).set({ trades, telegramChatId: userTelegramChatId }, { merge: true }); }catch(e){}
+}
+
 async function save(){
   if(!currentUser) return;
   try{
-    await db.collection('users').doc(currentUser.uid).set({ trades });
+    await db.collection('users').doc(currentUser.uid).set({ trades, telegramChatId: userTelegramChatId });
     setSt('✓ saved','#6fb592');
   }catch(e){ setSt('save err','#d04a45'); }
 }
