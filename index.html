@@ -127,6 +127,10 @@ tr:hover td{background:var(--panel)}
 .mt-count{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:800;line-height:1;letter-spacing:2px;color:var(--brassb)}
 .mt-sub{font-family:monospace;font-size:9px;color:var(--creamx);margin-top:5px;letter-spacing:1px}
 
+/* gate screen */
+#gate-screen{position:fixed;inset:0;background:var(--bg);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px}
+.gate-hint{font-family:monospace;font-size:11px;color:var(--creamx);margin-top:14px;text-align:center;letter-spacing:1px}
+
 /* auth screen */
 #auth-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:2000;align-items:center;justify-content:center;padding:20px}
 .auth-panel{background:linear-gradient(135deg,var(--panel),var(--deep));border:1px solid var(--lineb);border-top:2px solid var(--brass);max-width:420px;width:100%;padding:36px 32px;box-shadow:0 30px 80px rgba(0,0,0,0.7)}
@@ -140,6 +144,22 @@ tr:hover td{background:var(--panel)}
 </style>
 </head>
 <body>
+
+<!-- GATE SCREEN -->
+<div id="gate-screen">
+  <div class="auth-panel">
+    <div class="auth-brand">Edge Tracker</div>
+    <div class="auth-brand-sub">Edwins Investments</div>
+    <div class="auth-mode">Enter Access Code</div>
+    <div class="auth-err" id="gate-err"></div>
+    <div>
+      <label class="flabel">Access Code</label>
+      <input class="finput" id="gate-code" type="password" placeholder="••••••" autocomplete="off" autofocus>
+    </div>
+    <button class="btn primary" onclick="Gate.submit()" style="width:100%;margin-top:20px;justify-content:center">Continue</button>
+    <div class="gate-hint">Private access only</div>
+  </div>
+</div>
 
 <!-- AUTH SCREEN -->
 <div id="auth-screen">
@@ -349,6 +369,28 @@ let eqCh = null, alCh = null, tsCh = null;
 let refreshTimer = null;
 let currentUser = null;
 
+// ── GATE ───────────────────────────────────────────────────────────────────
+const Gate = {
+  _key: 'etGateVerified',
+  init(){
+    if(localStorage.getItem(this._key) === '1'){
+      document.getElementById('gate-screen').style.display = 'none';
+    }
+  },
+  submit(){
+    const val = document.getElementById('gate-code').value;
+    const err = document.getElementById('gate-err');
+    if(val === '4BNmp'){
+      localStorage.setItem(this._key, '1');
+      document.getElementById('gate-screen').style.display = 'none';
+    } else {
+      err.textContent = 'Incorrect access code.';
+      document.getElementById('gate-code').value = '';
+    }
+  }
+};
+Gate.init();
+
 // ── AUTH ───────────────────────────────────────────────────────────────────
 const Auth = {
   mode: 'signin',
@@ -399,7 +441,9 @@ const Auth = {
 };
 
 document.addEventListener('keydown', e => {
-  if(e.key === 'Enter' && document.getElementById('auth-screen').style.display === 'flex') Auth.submit();
+  if(e.key !== 'Enter') return;
+  if(document.getElementById('gate-screen').style.display !== 'none') Gate.submit();
+  else if(document.getElementById('auth-screen').style.display === 'flex') Auth.submit();
 });
 
 // ── STORAGE ────────────────────────────────────────────────────────────────
