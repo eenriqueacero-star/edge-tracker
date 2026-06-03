@@ -437,28 +437,21 @@ tr:hover td{background:rgba(0,162,255,0.07)}
     </div>
   </div>
 
-  <!-- Stock Price Alerts -->
+      <!-- Stock Price Alerts -->
   <div class="settings-card">
     <div class="settings-card-header">🔔 Stock Price Alerts</div>
     <div class="settings-card-body">
       <div class="toggle-row" style="border-bottom:none;margin-bottom:18px">
         <div>
           <div style="font-weight:700;color:var(--creamb);font-size:14px">Enable Price Alerts</div>
-          <div style="font-size:12px;color:var(--creamx);margin-top:2px">Get Telegram messages when your positions move</div>
+          <div style="font-size:12px;color:var(--creamx);margin-top:2px">Get Telegram messages when your positions move — works even when the app is closed</div>
         </div>
         <label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-price-enabled" onchange="Settings.savePriceAlerts()"><span class="toggle-pill"></span></label>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:18px">
-        <div>
-          <label class="flabel">Telegram Bot Token</label>
-          <input class="finput" id="s-bot-token" placeholder="1234567890:AAFxxx..." onchange="Settings.savePriceAlerts()">
-          <div class="fhint">From @BotFather on Telegram</div>
-        </div>
-        <div>
-          <label class="flabel">Your Chat ID</label>
-          <input class="finput" id="s-chat-id" placeholder="e.g. 8162576417" onchange="Settings.savePriceAlerts()">
-          <div class="fhint">From @userinfobot on Telegram</div>
-        </div>
+      <div style="margin-bottom:18px">
+        <label class="flabel">Your Telegram Chat ID</label>
+        <input class="finput" id="s-chat-id" placeholder="e.g. 8162576417" onchange="Settings.savePriceAlerts()" style="max-width:260px">
+        <div class="fhint">Message @EdgeTrackerBot on Telegram and send /myid to get this</div>
       </div>
       <div style="margin-bottom:18px">
         <div class="flabel" style="margin-bottom:8px">Alert Triggers</div>
@@ -472,12 +465,12 @@ tr:hover td{background:rgba(0,162,255,0.07)}
         <span id="s-price-status" style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:700"></span>
       </div>
       <div style="background:var(--panel);border-radius:10px;padding:14px 16px;border:1px solid var(--line)">
-        <div style="font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--brass);margin-bottom:10px">How to set up your Telegram bot</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--brass);margin-bottom:10px">How to link your Telegram</div>
         <ol style="padding-left:18px;font-size:13px;color:var(--creamd);line-height:2.1;font-weight:600">
-          <li>Open Telegram and search <strong style="color:var(--creamb)">@BotFather</strong></li>
-          <li>Send <code style="background:var(--inst);padding:1px 6px;border-radius:4px;color:var(--brass);font-size:12px">/newbot</code> and follow the steps — copy your bot token above</li>
-          <li>Start a chat with your new bot, then search <strong style="color:var(--creamb)">@userinfobot</strong></li>
-          <li>Send <code style="background:var(--inst);padding:1px 6px;border-radius:4px;color:var(--brass);font-size:12px">/start</code> to @userinfobot — it replies with your Chat ID</li>
+          <li>Open Telegram and search <strong style="color:var(--creamb)">@EdgeTrackerBot</strong></li>
+          <li>Send <code style="background:var(--inst);padding:1px 6px;border-radius:4px;color:var(--brass);font-size:12px">/myid</code> — the bot replies with your chat ID</li>
+          <li>Paste the number above and tap <strong>Send Test Message</strong></li>
+          <li>You'll receive a confirmation message</li>
         </ol>
       </div>
     </div>
@@ -490,7 +483,7 @@ tr:hover td{background:rgba(0,162,255,0.07)}
       <div class="toggle-row" style="border-bottom:none;margin-bottom:18px">
         <div>
           <div style="font-weight:700;color:var(--creamb);font-size:14px">Enable News Alerts</div>
-          <div style="font-size:12px;color:var(--creamx);margin-top:2px">Get notified when news breaks on your open positions (uses same bot &amp; chat ID)</div>
+          <div style="font-size:12px;color:var(--creamx);margin-top:2px">Telegram alerts when news breaks on your positions — works even when the app is closed</div>
         </div>
         <label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-news-enabled" onchange="Settings.saveNewsAlerts()"><span class="toggle-pill"></span></label>
       </div>
@@ -633,8 +626,9 @@ firebase.initializeApp(firebaseConfig);
 const db   = firebase.firestore();
 const auth = firebase.auth();
 
-const FINNHUB_KEY = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
-const REFRESH_MS  = 60000;
+const FINNHUB_KEY    = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
+const TELEGRAM_TOKEN = '8793038031:AAF2Zwdm9JZtDWZ7zmR8b9ntqVThUq4txpo';
+const REFRESH_MS     = 60000;
 
 let trades = [], confirmCb = null, closingId = null, pBucket = 'core', pPlan = 'planned';
 let liveCache = {}, spyLive = null;
@@ -643,7 +637,7 @@ let refreshTimer = null;
 let currentUser = null;
 let userProfile = { username: '' };
 let userSettings = {
-  username:'', telegramBotToken:'', telegramChatId:'',
+  username:'', telegramChatId:'',
   priceAlertsEnabled:false, alertOnDrop5:true, alertOnPump5:true, alertOnAlphaNeg:true, alertOnDown10:false,
   newsAlertsEnabled:false, alertOnNewArticle:false, alertOnSentimentChange:true, alertOnBreaking:true,
   newsCheckFrequency:30
@@ -719,46 +713,46 @@ function updateClock(){
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
 const alertCooldowns = {};
 
-async function sendTelegram(token, chatId, text){
-  if(!token||!chatId) return false;
+async function sendTelegram(chatId, text){
+  if(!chatId) return false;
   try{
-    const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text,parse_mode:'HTML'})});
+    const r=await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text,parse_mode:'HTML'})});
     return r.ok;
   }catch(e){ return false; }
 }
 
 function checkAlerts(rows){
   if(!userSettings.priceAlertsEnabled) return;
-  const token=userSettings.telegramBotToken, chatId=userSettings.telegramChatId;
-  if(!token||!chatId) return;
+  const chatId=userSettings.telegramChatId;
+  if(!chatId) return;
   const now=Date.now(), cooldown=3600000;
   rows.forEach(r=>{
     if(userSettings.alertOnDrop5&&r.changePct!=null&&r.changePct<=-5){
       const key=`${r.ticker}_daily_down`;
       if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
         alertCooldowns[key]=now; persistCooldown(key,now);
-        sendTelegram(token,chatId,`⚠️ <b>${r.ticker}</b> dropped <b>${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
+        sendTelegram(chatId,`⚠️ <b>${r.ticker}</b> dropped <b>${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
       }
     }
     if(userSettings.alertOnPump5&&r.changePct!=null&&r.changePct>=5){
       const key=`${r.ticker}_daily_up`;
       if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
         alertCooldowns[key]=now; persistCooldown(key,now);
-        sendTelegram(token,chatId,`🚀 <b>${r.ticker}</b> is up <b>+${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
+        sendTelegram(chatId,`🚀 <b>${r.ticker}</b> is up <b>+${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
       }
     }
     if(userSettings.alertOnDown10&&r.changePct!=null&&r.changePct<=-10){
       const key=`${r.ticker}_daily_crash`;
       if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
         alertCooldowns[key]=now; persistCooldown(key,now);
-        sendTelegram(token,chatId,`🆘 <b>${r.ticker}</b> crashed <b>${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
+        sendTelegram(chatId,`🆘 <b>${r.ticker}</b> crashed <b>${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
       }
     }
     if(userSettings.alertOnAlphaNeg&&r.al!=null&&r.al<-0.05){
       const key=`${r.ticker}_alpha_neg`;
       if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
         alertCooldowns[key]=now; persistCooldown(key,now);
-        sendTelegram(token,chatId,`📉 <b>${r.ticker}</b> alpha turned negative\nLagging SPY by <b>${(r.al*100).toFixed(2)}%</b> since entry`);
+        sendTelegram(chatId,`📉 <b>${r.ticker}</b> alpha turned negative\nLagging SPY by <b>${(r.al*100).toFixed(2)}%</b> since entry`);
       }
     } else if(r.al!=null&&r.al>=-0.05){
       delete alertCooldowns[`${r.ticker}_alpha_neg`];
@@ -786,7 +780,6 @@ const Settings = {
   },
   async savePriceAlerts(){
     userSettings.priceAlertsEnabled=document.getElementById('s-price-enabled').checked;
-    userSettings.telegramBotToken=document.getElementById('s-bot-token').value.trim();
     userSettings.telegramChatId=document.getElementById('s-chat-id').value.trim();
     userSettings.alertOnDrop5=document.getElementById('s-alert-drop5').checked;
     userSettings.alertOnPump5=document.getElementById('s-alert-pump5').checked;
@@ -794,7 +787,6 @@ const Settings = {
     userSettings.alertOnDown10=document.getElementById('s-alert-down10').checked;
     if(currentUser){
       db.collection('users').doc(currentUser.uid).set({
-        telegramBotToken:userSettings.telegramBotToken,
         telegramChatId:userSettings.telegramChatId,
         priceAlertsEnabled:userSettings.priceAlertsEnabled,
         alertOnDrop5:userSettings.alertOnDrop5,
@@ -822,21 +814,20 @@ const Settings = {
     News.scheduleRefresh();
   },
   async testPriceAlert(){
-    const token=document.getElementById('s-bot-token').value.trim();
     const chatId=document.getElementById('s-chat-id').value.trim();
     const st=document.getElementById('s-price-status');
-    if(!token||!chatId){ st.textContent='✗ Enter token and chat ID first'; st.style.color='var(--red)'; setTimeout(()=>{st.textContent='';st.style.color='';},3000); return; }
-    const ok=await sendTelegram(token,chatId,'✅ <b>Edge Tracker</b> price alerts are linked!');
-    st.textContent=ok?'✓ Message sent':'✗ Failed — check token & chat ID';
+    if(!chatId){ st.textContent='✗ Enter your chat ID first'; st.style.color='var(--red)'; setTimeout(()=>{st.textContent='';st.style.color='';},3000); return; }
+    const ok=await sendTelegram(chatId,'✅ <b>Edge Tracker</b> price alerts are linked!');
+    st.textContent=ok?'✓ Message sent':'✗ Failed — check your chat ID';
     st.style.color=ok?'var(--jade)':'var(--red)';
     setTimeout(()=>{st.textContent='';st.style.color='';},3500);
   },
   async testNewsAlert(){
-    const token=userSettings.telegramBotToken, chatId=userSettings.telegramChatId;
+    const chatId=userSettings.telegramChatId;
     const st=document.getElementById('s-news-status');
-    if(!token||!chatId){ st.textContent='✗ Configure price alerts first (same bot)'; st.style.color='var(--red)'; setTimeout(()=>{st.textContent='';st.style.color='';},3000); return; }
-    const ok=await sendTelegram(token,chatId,'📰 <b>Edge Tracker</b> news alerts are linked!');
-    st.textContent=ok?'✓ Message sent':'✗ Failed — check token & chat ID';
+    if(!chatId){ st.textContent='✗ Enter your chat ID in Price Alerts first'; st.style.color='var(--red)'; setTimeout(()=>{st.textContent='';st.style.color='';},3000); return; }
+    const ok=await sendTelegram(chatId,'📰 <b>Edge Tracker</b> news alerts are linked!');
+    st.textContent=ok?'✓ Message sent':'✗ Failed — check your chat ID';
     st.style.color=ok?'var(--jade)':'var(--red)';
     setTimeout(()=>{st.textContent='';st.style.color='';},3500);
   },
@@ -869,10 +860,8 @@ const Settings = {
     if(ss){const ct=currentUser?.metadata?.creationTime;ss.textContent=ct?'Member since '+new Date(ct).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}):'';}
     if(si&&document.activeElement!==si) si.value=name;
     const pe=document.getElementById('s-price-enabled');
-    const bt=document.getElementById('s-bot-token');
     const ci=document.getElementById('s-chat-id');
     if(pe) pe.checked=userSettings.priceAlertsEnabled;
-    if(bt&&document.activeElement!==bt) bt.value=userSettings.telegramBotToken;
     if(ci&&document.activeElement!==ci) ci.value=userSettings.telegramChatId;
     const d5=document.getElementById('s-alert-drop5');
     const p5=document.getElementById('s-alert-pump5');
@@ -982,7 +971,6 @@ async function loadFromFirestore(){
     const data=doc.exists?doc.data():{};
     trades=data.trades||[];
     userSettings.username=data.username||'';
-    userSettings.telegramBotToken=data.telegramBotToken||'';
     userSettings.telegramChatId=data.telegramChatId||'';
     userSettings.priceAlertsEnabled=data.priceAlertsEnabled??false;
     userSettings.alertOnDrop5=data.alertOnDrop5??true;
@@ -1322,14 +1310,14 @@ const News = {
     }catch(_){}
     this._cache[ticker]=articles;
     this._renderTicker(ticker,articles);
-    if(userSettings.newsAlertsEnabled&&userSettings.telegramBotToken&&userSettings.telegramChatId){
+    if(userSettings.newsAlertsEnabled&&userSettings.telegramChatId){
       this._checkNewsAlerts(ticker,articles);
     }
   },
 
   _checkNewsAlerts(ticker,articles){
     if(!articles.length) return;
-    const token=userSettings.telegramBotToken, chatId=userSettings.telegramChatId;
+    const chatId=userSettings.telegramChatId;
     const prevHeadlines=this._lastHeadlines[ticker]||[];
     const prevSentiment=this._lastSentiment[ticker];
     const verdict=this._verdict(articles,ticker);
@@ -1338,7 +1326,7 @@ const News = {
 
     if(hasHistory&&userSettings.alertOnNewArticle&&newArticles.length){
       const h=newArticles[0].headline||'';
-      sendTelegram(token,chatId,`📰 <b>${ticker}</b> — ${newArticles.length} new article${newArticles.length>1?'s':''}\n"${h.slice(0,120)}"`);
+      sendTelegram(chatId,`📰 <b>${ticker}</b> — ${newArticles.length} new article${newArticles.length>1?'s':''}\n"${h.slice(0,120)}"`);
     }
 
     if(hasHistory&&userSettings.alertOnBreaking&&newArticles.length){
@@ -1347,13 +1335,13 @@ const News = {
       const hit=breaking.find(w=>txt.includes(w));
       if(hit){
         const h=newArticles[0].headline||'';
-        sendTelegram(token,chatId,`🚨 <b>Breaking: ${ticker}</b>\n"${h.slice(0,130)}"`);
+        sendTelegram(chatId,`🚨 <b>Breaking: ${ticker}</b>\n"${h.slice(0,130)}"`);
       }
     }
 
     if(hasHistory&&userSettings.alertOnSentimentChange&&prevSentiment&&prevSentiment!==verdict.sentiment){
       const arrow=verdict.sentiment==='Bullish'?'📈':verdict.sentiment==='Bearish'?'📉':'➡️';
-      sendTelegram(token,chatId,`${arrow} <b>${ticker}</b> sentiment: ${prevSentiment} → <b>${verdict.sentiment}</b>\n${verdict.theme}`);
+      sendTelegram(chatId,`${arrow} <b>${ticker}</b> sentiment: ${prevSentiment} → <b>${verdict.sentiment}</b>\n${verdict.theme}`);
     }
 
     this._lastHeadlines[ticker]=articles.map(a=>a.headline);
