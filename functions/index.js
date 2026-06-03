@@ -89,7 +89,7 @@ function newsVerdict(articles, ticker) {
 
 // ── admin data ────────────────────────────────────────────────────────────
 
-const ADMIN_EMAIL = 'avoidingransom@gmail.com';
+const ADMIN_EMAIL = 'e.enrique.acero@gmail.com';
 
 exports.getAdminData = onCall(async (request) => {
   if (!request.auth || request.auth.token.email !== ADMIN_EMAIL) {
