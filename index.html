@@ -13,7 +13,7 @@
 <style>
 :root{--bg:#1B1B1B;--panel:#252525;--deep:#1B1B1B;--inst:#2D2D2D;--line:#393939;--lineb:#4a4a4a;--brass:#00A2FF;--brassb:#33b8ff;--brassd:#007acc;--ox:#cc0000;--jade:#00B06F;--jaded:#005c3b;--cream:#FFFFFF;--creamb:#FFFFFF;--creamd:#CCCCCC;--creamx:#A8A8A8;--red:#FF4444;--violet:#9B59B6;--amber:#FFD700}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--cream);font-family:'Nunito',sans-serif;font-size:15px;line-height:1.6}
+body{background:var(--bg);color:var(--cream);font-family:'Nunito',sans-serif;font-size:15px;line-height:1.6;overflow-x:hidden}
 button{font-family:inherit;cursor:pointer}
 .wrap{max-width:1200px;margin:0 auto;padding:28px 20px 100px}
 .topbar{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border-radius:16px;padding:16px 24px;margin-bottom:26px;flex-wrap:wrap;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.5);border:1px solid var(--line)}
@@ -49,7 +49,7 @@ button{font-family:inherit;cursor:pointer}
 /* live positions - leaderboard */
 .live-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
 .live-title{font-size:22px;font-weight:800;color:var(--creamb)}
-.live-badge{display:flex;align-items:center;gap:6px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:var(--amber);letter-spacing:1px;background:rgba(255,215,0,0.1);padding:5px 14px;border-radius:100px;border:1px solid rgba(255,215,0,0.3);min-width:200px;justify-content:center}
+.live-badge{display:flex;align-items:center;gap:6px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;color:var(--amber);letter-spacing:1px;background:rgba(255,215,0,0.1);padding:5px 14px;border-radius:100px;border:1px solid rgba(255,215,0,0.3)}
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);animation:blink 1.8s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 .live-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
@@ -57,7 +57,7 @@ button{font-family:inherit;cursor:pointer}
 .live-sum-cell{background:var(--inst);padding:16px;border-radius:12px;border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,0.25)}
 .ls-lbl{font-family:'Nunito',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--creamx);margin-bottom:6px}
 .ls-val{font-family:'Fredoka One',cursive;font-size:26px;font-weight:400}
-.live-tbl{border-radius:12px;overflow-x:auto;border:1px solid var(--line);-webkit-overflow-scrolling:touch}
+.live-tbl{border-radius:12px;overflow:hidden;border:1px solid var(--line)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--creamx);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);background:var(--panel);white-space:nowrap}
 th.r,td.r{text-align:right}
@@ -96,7 +96,7 @@ tr:hover td{background:rgba(0,162,255,0.07)}
 .bzero{position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--lineb);z-index:2}
 .bfill{position:absolute;top:0;bottom:0;transition:width 0.7s ease}
 .bfill.pos{background:linear-gradient(90deg,var(--jaded),var(--jade))}.bfill.neg{background:linear-gradient(90deg,var(--red),var(--ox))}
-.tbl-panel{border-radius:12px;overflow-x:auto;border:1px solid var(--line);-webkit-overflow-scrolling:touch}
+.tbl-panel{border-radius:12px;overflow:hidden;border:1px solid var(--line)}
 .empty{padding:32px;text-align:center;color:var(--creamx);font-weight:700;background:var(--inst);border-radius:12px;border:1px solid var(--line)}
 .disclaimer{margin-top:32px;padding:20px 24px;border:1px solid var(--line);background:var(--inst);border-radius:12px;font-size:13px;line-height:1.65;color:var(--creamd);font-weight:600}
 .disclaimer strong{color:var(--brass)}
@@ -144,75 +144,36 @@ tr:hover td{background:rgba(0,162,255,0.07)}
 .auth-toggle-btn{background:none;border:none;color:var(--brass);font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;padding:0}
 .auth-toggle-btn:hover{color:var(--brassb)}
 
-/* ── MOBILE ──────────────────────────────────────────────────────────────── */
-@media(max-width:768px){
-  .wrap{padding:14px 12px 80px}
-
-  /* topbar stacks vertically */
-  .topbar{flex-direction:column;align-items:stretch;gap:10px;padding:14px 16px;border-radius:12px}
-  .topbar>div:first-child{display:flex;justify-content:space-between;align-items:center}
-  .brand{font-size:22px}
-  .brand-sub{font-size:9px}
-  .market-timer{display:flex;align-items:center;gap:12px;text-align:left;min-width:unset;width:100%;padding:8px 12px;justify-content:space-between}
-  .mt-label{margin-bottom:0;font-size:9px}
-  .mt-count{font-size:22px;letter-spacing:1px}
-  .mt-sub{margin-top:0}
-  .actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .actions .btn{justify-content:center;min-height:42px;padding:8px 10px;font-size:10px}
-  .actions .sync{grid-column:1/-1;text-align:center}
-  #user-email-display{display:none}
-
-  /* verdict */
-  .verdict{padding:14px 16px}
-
-  /* tiles — 2 columns */
-  .tiles{grid-template-columns:1fr 1fr;gap:8px}
-  .tile{padding:14px 12px}
-  .t-val{font-size:26px}
-
-  /* live summary already 2-col at 600px — just tighten padding */
-  .live-sum-cell{padding:12px}
-  .ls-val{font-size:20px}
-
-  /* tables — enforce min-width so columns don't crush */
-  .live-tbl table{min-width:680px}
-  .tbl-panel table{min-width:560px}
-
-  /* charts */
-  .cbox{padding:14px}
-  .chart-canvas{height:200px}
-  .chart-canvas.tall{height:220px}
-
-  /* bucket bars */
-  .bucket-row{grid-template-columns:80px 1fr 68px;gap:8px}
-
-  /* sections */
-  .sec-title{font-size:18px}
-  .live-title{font-size:18px}
-
-  /* modals — bottom sheet */
-  .overlay{padding:0;align-items:flex-end}
-  .overlay.open{align-items:flex-end}
-  .modal{border-radius:20px 20px 0 0;max-height:90vh;overflow-y:auto;margin:0;width:100%;padding:20px 16px}
-  .confirm-box{border-radius:20px 20px 0 0;margin:0;width:100%;padding:20px 16px}
-  .m-actions{flex-direction:column-reverse}
-  .m-actions .btn{width:100%;justify-content:center;min-height:44px}
-
-  /* notification panel */
-  #notif-panel{padding:14px}
-
-  /* auth / gate panels */
-  .auth-panel{padding:28px 20px;border-radius:12px}
-
-  /* disclaimer */
-  .disclaimer{font-size:12px;padding:14px 16px}
-}
-
-@media(max-width:480px){
-  .tiles{grid-template-columns:1fr}
-  .tile.wide{grid-column:span 1}
-  .actions{grid-template-columns:1fr 1fr}
-}
+/* news section */
+.news-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.news-title{font-size:22px;font-weight:800;color:var(--creamb)}
+.news-sub{font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--creamx);letter-spacing:0.5px;margin-top:3px}
+.news-card{background:var(--inst);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+.news-card-head{display:flex;align-items:center;gap:12px;padding:16px 20px;cursor:pointer;user-select:none;transition:background 0.15s}
+.news-card-head:hover{background:rgba(255,255,255,0.04)}
+.news-sent-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;transition:background 0.3s}
+.news-card-ticker{font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;color:var(--creamb);letter-spacing:1px}
+.news-card-count{font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:var(--creamx);margin-left:6px}
+.news-chevron{margin-left:auto;color:var(--creamx);font-size:13px;transition:transform 0.2s;line-height:1}
+.news-card.open .news-chevron{transform:rotate(180deg)}
+.news-body{display:none;padding:0 20px 20px}
+.news-card.open .news-body{display:block}
+.news-article{padding:12px 0;border-bottom:1px solid var(--line)}
+.news-article:last-of-type{border-bottom:none}
+.news-headline{font-size:13px;font-weight:700;color:var(--creamb);margin-bottom:4px;line-height:1.45}
+.news-headline a{color:var(--creamb);text-decoration:none}
+.news-headline a:hover{color:var(--brass);text-decoration:underline}
+.news-meta{font-size:11px;color:var(--creamx);font-weight:600;margin-bottom:5px}
+.news-summary{font-size:12px;color:var(--creamd);line-height:1.55;font-weight:600}
+.news-verdict{margin-top:16px;padding:14px 18px;background:var(--panel);border-radius:10px;border-left:3px solid var(--brass)}
+.nv-label{font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+.nv-sent{font-size:17px;font-weight:800;margin-bottom:5px}
+.nv-theme{font-size:12px;font-weight:700;color:var(--creamd);margin-bottom:6px}
+.nv-impact{font-size:12px;color:var(--creamd);line-height:1.6;font-weight:600}
+.news-spinner{display:flex;align-items:center;gap:10px;padding:18px 0;color:var(--creamx);font-size:12px;font-weight:700}
+.spinner{width:15px;height:15px;border:2px solid var(--line);border-top-color:var(--brass);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.news-none{padding:14px 0;color:var(--creamx);font-size:12px;font-weight:700;font-style:italic}
 </style>
 </head>
 <body>
@@ -270,12 +231,10 @@ tr:hover td{background:rgba(0,162,255,0.07)}
     <div class="brand">Edge Tracker</div>
     <div class="brand-sub">Edwins Investments</div>
   </div>
-  <div class="market-timer" id="market-timer">
-    <div>
-      <div class="mt-label" id="mt-label">Market Opens In</div>
-      <div class="mt-sub" id="mt-sub">NYSE · NASDAQ · 9:30 AM ET</div>
-    </div>
+  <div class="market-timer">
+    <div class="mt-label" id="mt-label">Market Opens In</div>
     <div class="mt-count" id="mt-count">--:--:--</div>
+    <div class="mt-sub" id="mt-sub">NYSE · NASDAQ · 9:30 AM ET</div>
   </div>
   <div class="actions">
     <span class="sync" id="sync-st"></span>
@@ -283,37 +242,7 @@ tr:hover td{background:rgba(0,162,255,0.07)}
     <button class="btn" onclick="App.loadSample()">Example Data</button>
     <button class="btn danger" onclick="App.askClear()">Clear All</button>
     <button class="btn primary" onclick="App.openAdd()">+ Log Trade</button>
-    <button class="btn" onclick="Notif.toggle()" id="notif-btn">🔔 Alerts</button>
     <button class="btn" onclick="Auth.signOut()" title="Sign out">Sign Out</button>
-  </div>
-</div>
-
-<!-- NOTIFICATION SETTINGS PANEL -->
-<div id="notif-panel" style="display:none;margin-bottom:16px;padding:18px 20px;background:var(--inst);border:1px solid var(--line);border-radius:12px;border-left:4px solid var(--amber)">
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <span style="font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:1px">🔔 Telegram Alerts</span>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:13px;font-weight:700;color:var(--creamd)">Your Telegram Chat ID:</span>
-      <input class="finput" id="notif-chat-id" type="text" placeholder="e.g. 123456789" style="width:160px;padding:5px 10px;display:inline-block">
-      <button class="btn" onclick="Notif.linkChatId()" style="padding:6px 14px">Link & Test</button>
-      <span id="notif-link-status" style="font-size:12px;font-weight:700;color:var(--jade)"></span>
-    </div>
-    <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:12px;color:var(--creamd);font-weight:600;line-height:1.9">
-      <div style="font-weight:800;color:var(--brass);margin-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:1px">How to link your Telegram</div>
-      <div><span style="color:var(--brass);font-weight:800">1.</span> Open Telegram and search for <b style="color:var(--cream)">@NotifyYourStockBot</b></div>
-      <div><span style="color:var(--brass);font-weight:800">2.</span> Send the command <b style="color:var(--cream)">/myid</b></div>
-      <div><span style="color:var(--brass);font-weight:800">3.</span> The bot will reply with your Chat ID number</div>
-      <div><span style="color:var(--brass);font-weight:800">4.</span> Paste that number in the field above and click <b style="color:var(--cream)">Link & Test</b></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-top:4px;border-top:1px solid var(--line)">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--creamd);cursor:pointer">
-        <input type="checkbox" id="notif-enabled" onchange="Notif.save()"> Alerts enabled
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--creamd)">
-        Daily move ±<input class="finput" id="notif-threshold" type="number" min="0.5" max="20" step="0.5" value="3" style="width:65px;padding:5px 8px;display:inline-block" onchange="Notif.save()">%
-      </label>
-      <span style="font-size:11px;color:var(--creamx);font-weight:600">Fires when a position moves ±threshold% in a day or alpha turns negative vs SPY. 1-hour cooldown per ticker.</span>
-    </div>
   </div>
 </div>
 
@@ -335,6 +264,18 @@ tr:hover td{background:rgba(0,162,255,0.07)}
   </div>
   <div class="live-sum" id="live-sum"></div>
   <div id="live-panel"></div>
+</div>
+
+<!-- NEWS SECTION -->
+<div class="sec" id="news-sec">
+  <div class="news-header">
+    <div>
+      <div class="news-title">Position News</div>
+      <div class="news-sub">AI-summarized · last 7 days</div>
+    </div>
+    <button class="btn" onclick="News.refresh()">↺ Refresh</button>
+  </div>
+  <div id="news-container"></div>
 </div>
 
 <div class="sec">
@@ -464,12 +405,11 @@ firebase.initializeApp(firebaseConfig);
 const db   = firebase.firestore();
 const auth = firebase.auth();
 
-const FINNHUB_KEY = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
-const REFRESH_MS = 5000;
+const FINNHUB_KEY    = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
 const TELEGRAM_TOKEN = '8793038031:AAF2Zwdm9JZtDWZ7zmR8b9ntqVThUq4txpo';
+const REFRESH_MS     = 60000;
 
 let trades = [], confirmCb = null, closingId = null, pBucket = 'core', pPlan = 'planned';
-let userTelegramChatId = '';
 let liveCache = {}, spyLive = null;
 let eqCh = null, alCh = null, tsCh = null;
 let refreshTimer = null;
@@ -483,9 +423,12 @@ const Notif = {
   save(){
     const s={enabled:document.getElementById('notif-enabled').checked,threshold:parseFloat(document.getElementById('notif-threshold').value)||3};
     localStorage.setItem(this._key,JSON.stringify(s));
+    if(currentUser){
+      db.collection('users').doc(currentUser.uid).set({alertEnabled:s.enabled,alertThreshold:s.threshold},{merge:true}).catch(()=>{});
+    }
   },
-  init(){
-    const s=this.load();
+  init(data){
+    const s = data ? {enabled:data.alertEnabled??false,threshold:data.alertThreshold??3} : this.load();
     document.getElementById('notif-enabled').checked=s.enabled;
     document.getElementById('notif-threshold').value=s.threshold;
     document.getElementById('notif-chat-id').value=userTelegramChatId||'';
@@ -517,6 +460,7 @@ function checkAlerts(rows){
       const key=`${r.ticker}_daily_${r.changePct>0?'up':'down'}`;
       if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
         alertCooldowns[key]=now;
+        persistCooldown(key,now);
         const emoji=r.changePct>0?'🚀':'⚠️';
         sendTelegram(`${emoji} <b>${r.ticker}</b> is ${r.changePct>0?'up':'down'} <b>${r.changePct>0?'+':''}${r.changePct.toFixed(2)}%</b> today\nPrice: $${r.now?.toFixed(2)||'—'}`);
       }
@@ -525,12 +469,18 @@ function checkAlerts(rows){
       const key=`${r.ticker}_alpha_neg`;
       if(!alertCooldowns[key]||now-alertCooldowns[key]>cooldown){
         alertCooldowns[key]=now;
+        persistCooldown(key,now);
         sendTelegram(`📉 <b>${r.ticker}</b> alpha turned negative\nLagging SPY by <b>${(r.al*100).toFixed(2)}%</b> since entry`);
       }
     } else if(r.al!=null&&r.al>=0){
       delete alertCooldowns[`${r.ticker}_alpha_neg`];
     }
   });
+}
+
+function persistCooldown(key, ts){
+  if(!currentUser) return;
+  db.collection('users').doc(currentUser.uid).set({alertCooldowns:{[key]:ts}},{merge:true}).catch(()=>{});
 }
 
 // ── GATE ───────────────────────────────────────────────────────────────────
@@ -620,21 +570,19 @@ async function loadFromFirestore(){
     const data = doc.exists ? doc.data() : {};
     trades = data.trades || [];
     userTelegramChatId = data.telegramChatId || '';
-    Notif.init();
-  }catch(e){ trades = []; }
+    const stored = data.alertCooldowns || {};
+    Object.assign(alertCooldowns, stored);
+    Notif.init(data);
+  }catch(e){ trades = []; Notif.init(); }
   renderAll();
   startRefresh();
-}
-
-async function saveSettings(){
-  if(!currentUser) return;
-  try{ await db.collection('users').doc(currentUser.uid).set({ trades, telegramChatId: userTelegramChatId }, { merge: true }); }catch(e){}
+  News.refresh();
 }
 
 async function save(){
   if(!currentUser) return;
   try{
-    await db.collection('users').doc(currentUser.uid).set({ trades, telegramChatId: userTelegramChatId });
+    await db.collection('users').doc(currentUser.uid).set({ trades, telegramChatId: userTelegramChatId }, { merge: true });
     setSt('✓ saved','#6fb592');
   }catch(e){ setSt('save err','#d04a45'); }
 }
@@ -683,6 +631,7 @@ async function fetchPrice(ticker){
 async function refreshAllPrices(){
   const tickers = [...new Set(openPos().map(t=>t.ticker).filter(Boolean))];
   if(!tickers.length){ document.getElementById('live-status').textContent = 'no open positions'; return; }
+  document.getElementById('live-status').textContent = 'fetching…';
   const results = await Promise.all([...tickers.map(tk=>fetchPrice(tk)), fetchPrice('SPY')]);
   tickers.forEach((tk,i)=>{ if(results[i]) liveCache[tk]=results[i]; });
   const spyResult = results[tickers.length];
@@ -699,41 +648,18 @@ function startRefresh(){
 }
 
 // ── RENDER LIVE SECTION ────────────────────────────────────────────────────
-let _liveRenderedKey = null;
-
-function _liveRowHtml(r, maxAbs){
-  const barW = r.al!=null?(Math.abs(r.al)/maxAbs*80).toFixed(1):0;
-  const barColor = r.al>0?'var(--jade)':'var(--red)';
-  const priceCell = r.now ? `<span style="font-family:monospace;font-weight:700;color:var(--creamb)">$${r.now.toFixed(2)}</span>` : `<span class="price-loading">fetching…</span>`;
-  const changeCell = r.changePct!=null ? `<span class="${r.changePct>=0?'change-pos':'change-neg'}" style="font-family:monospace">${r.changePct>=0?'+':''}${r.changePct.toFixed(2)}% ${r.change!=null?'('+(r.change>=0?'+':'')+r.change.toFixed(2)+')':''}</span>` : '—';
-  return `<tr id="lrow-${r.id}">
-    <td><span class="ticker-cell">${esc(r.ticker)}</span><span class="tag ${r.bucket}">${r.bucket}</span></td>
-    <td><div class="muted">$${r.entryPrice.toFixed(2)}</div><div class="muted">${r.entryDate}</div></td>
-    <td class="r" id="lp-${r.id}">${priceCell}</td>
-    <td class="r" id="lc-${r.id}">${changeCell}</td>
-    <td class="r" id="lyr-${r.id}" style="font-family:monospace;color:${colorFor(r.yr)}">${r.yr!=null?pct(r.yr):'—'}</td>
-    <td class="r" id="lbr-${r.id}" style="font-family:monospace;color:${colorFor(r.br)}">${r.br!=null?pct(r.br):'—'}</td>
-    <td class="r" id="la-${r.id}" style="font-family:monospace;font-weight:700;color:${colorFor(r.al)}">${r.al!=null?pct(r.al):'—'}</td>
-    <td class="r" id="ll-${r.id}" style="font-family:monospace;color:${colorFor(r.pnl)}">${r.pnl!=null?money(r.pnl):'—'}</td>
-    <td style="width:110px;padding-right:12px" id="lb-${r.id}">${r.al!=null?`<div class="alpha-bar-wrap"><div class="alpha-bar" style="width:${barW}%;background:${barColor}"></div></div>`:'—'}</td>
-  </tr>`;
-}
-
-function _patchCell(id, html){ const el=document.getElementById(id); if(el) el.innerHTML=html; }
-function _patchText(id, text, color){ const el=document.getElementById(id); if(el){el.textContent=text; if(color!==undefined)el.style.color=color;} }
-
 function renderLive(){
   const o = openPos();
   const sumEl = document.getElementById('live-sum');
   const panEl = document.getElementById('live-panel');
 
   if(!o.length){
-    _liveRenderedKey = null;
     sumEl.innerHTML='';
     panEl.innerHTML='<div class="empty">No open positions. Log a trade to begin tracking.</div>';
     return;
   }
 
+  // Build rows
   const rows = o.map(t=>{
     const live = liveCache[t.ticker];
     const now = live?.price||null;
@@ -746,63 +672,64 @@ function renderLive(){
     return {...t,now,yr,br,al,pnl,mktVal,change:live?.change||null,changePct:live?.changePct||null};
   });
 
-  checkAlerts(rows);
   const validRows = rows.filter(r=>r.al!=null);
   const totalPnl = rows.reduce((s,r)=>s+(r.pnl||0),0);
   const totalMktVal = rows.reduce((s,r)=>s+(r.mktVal||0),0);
   const avgAlpha = validRows.length?mean(validRows.map(r=>r.al)):null;
   const beating = validRows.filter(r=>r.al>0).length;
+
+  // Summary tiles
+  sumEl.innerHTML=`
+    <div class="live-sum-cell"><div class="ls-lbl">Total Market Value</div><div class="ls-val" style="color:var(--creamb)">${totalMktVal?'$'+totalMktVal.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}</div></div>
+    <div class="live-sum-cell"><div class="ls-lbl">Unrealized P&L</div><div class="ls-val" style="color:${colorFor(totalPnl)}">${totalPnl?money(totalPnl):'—'}</div></div>
+    <div class="live-sum-cell"><div class="ls-lbl">Avg Alpha vs SPY</div><div class="ls-val" style="color:${colorFor(avgAlpha)}">${avgAlpha!=null?pct(avgAlpha):'—'}</div></div>
+    <div class="live-sum-cell"><div class="ls-lbl">Beating SPY</div><div class="ls-val" style="color:var(--creamb)">${validRows.length?beating+' / '+validRows.length:'—'}</div></div>`;
+
   const maxAbs = Math.max(0.001,...validRows.map(r=>Math.abs(r.al)));
-  const structKey = o.map(t=>t.id).join(',');
+  const spyRow = spyLive?`<tr style="background:rgba(200,169,106,0.05)">
+    <td colspan="2"><span class="ticker-cell" style="color:var(--brass)">SPY</span><span class="muted" style="margin-left:8px">benchmark</span></td>
+    <td class="r" style="font-family:monospace;font-weight:700;color:var(--brass)">$${spyLive.price.toFixed(2)}</td>
+    <td class="r ${spyLive.changePct>=0?'pos':'neg'}">${spyLive.changePct>=0?'+':''}${spyLive.changePct?.toFixed(2)}%</td>
+    <td colspan="5" class="muted">S&P 500 ETF — your benchmark</td>
+  </tr>`:'';
 
-  if(_liveRenderedKey !== structKey){
-    // ── Full render (structure changed) ──────────────────────────────────
-    _liveRenderedKey = structKey;
-    sumEl.innerHTML=`
-      <div class="live-sum-cell"><div class="ls-lbl">Total Market Value</div><div class="ls-val" id="ls-mv">—</div></div>
-      <div class="live-sum-cell"><div class="ls-lbl">Unrealized P&L</div><div class="ls-val" id="ls-pnl">—</div></div>
-      <div class="live-sum-cell"><div class="ls-lbl">Avg Alpha vs SPY</div><div class="ls-val" id="ls-al">—</div></div>
-      <div class="live-sum-cell"><div class="ls-lbl">Beating SPY</div><div class="ls-val" id="ls-bt" style="color:var(--creamb)">—</div></div>`;
-
-    const spyRow = spyLive?`<tr id="lrow-spy">
-      <td colspan="2"><span class="ticker-cell" style="color:var(--brass)">SPY</span><span class="muted" style="margin-left:8px">benchmark</span></td>
-      <td class="r" id="lp-spy" style="font-family:monospace;font-weight:700;color:var(--brass)">$${spyLive.price.toFixed(2)}</td>
-      <td class="r ${spyLive.changePct>=0?'pos':'neg'}" id="lc-spy">${spyLive.changePct>=0?'+':''}${spyLive.changePct?.toFixed(2)}%</td>
-      <td colspan="5" class="muted">S&P 500 ETF — your benchmark</td>
-    </tr>`:'';
-
-    panEl.innerHTML=`<div class="live-tbl"><table>
-      <thead><tr><th>Ticker</th><th>Entry</th><th class="r">Live Price</th><th class="r">Day Change</th><th class="r">Your Return</th><th class="r">SPY Return</th><th class="r">Alpha</th><th class="r">Unreal P&L</th><th>vs SPY</th></tr></thead>
-      <tbody>${rows.map(r=>_liveRowHtml(r,maxAbs)).join('')}${spyRow}</tbody>
-    </table></div>
-    <div id="live-footer" style="font-family:monospace;font-size:10px;color:var(--creamx);padding:8px 12px;border:1px solid var(--line);border-top:none;background:var(--inst);border-radius:0 0 12px 12px">
-      Live via Finnhub · SPY: <span id="lf-spy">${spyLive?'$'+spyLive.price.toFixed(2):'loading…'}</span>
-      <button onclick="refreshAllPrices()" style="background:none;border:none;color:var(--brass);font-family:monospace;font-size:10px;cursor:pointer;margin-left:12px">↻ refresh now</button>
-    </div>`;
-  } else {
-    // ── In-place patch — only update values, no DOM structure change ──────
-    rows.forEach(r=>{
-      _patchCell(`lp-${r.id}`, r.now?`<span style="font-family:monospace;font-weight:700;color:var(--creamb)">$${r.now.toFixed(2)}</span>`:`<span class="price-loading">fetching…</span>`);
-      _patchCell(`lc-${r.id}`, r.changePct!=null?`<span class="${r.changePct>=0?'change-pos':'change-neg'}" style="font-family:monospace">${r.changePct>=0?'+':''}${r.changePct.toFixed(2)}% ${r.change!=null?'('+(r.change>=0?'+':'')+r.change.toFixed(2)+')':''}</span>`:'—');
-      _patchText(`lyr-${r.id}`, r.yr!=null?pct(r.yr):'—', colorFor(r.yr));
-      _patchText(`lbr-${r.id}`, r.br!=null?pct(r.br):'—', colorFor(r.br));
-      _patchText(`la-${r.id}`,  r.al!=null?pct(r.al):'—',  colorFor(r.al));
-      _patchText(`ll-${r.id}`,  r.pnl!=null?money(r.pnl):'—', colorFor(r.pnl));
+  panEl.innerHTML=`<div class="live-tbl"><table>
+    <thead><tr>
+      <th>Ticker</th><th>Entry</th>
+      <th class="r">Live Price</th><th class="r">Day Change</th>
+      <th class="r">Your Return</th><th class="r">SPY Return</th>
+      <th class="r">Alpha</th><th class="r">Unreal P&L</th>
+      <th>vs SPY</th>
+    </tr></thead>
+    <tbody>
+    ${rows.map(r=>{
       const barW = r.al!=null?(Math.abs(r.al)/maxAbs*80).toFixed(1):0;
-      _patchCell(`lb-${r.id}`, r.al!=null?`<div class="alpha-bar-wrap"><div class="alpha-bar" style="width:${barW}%;background:${r.al>0?'var(--jade)':'var(--red)'}"></div></div>`:'—');
-    });
-    if(spyLive){
-      _patchText('lp-spy', '$'+spyLive.price.toFixed(2));
-      _patchText('lc-spy', (spyLive.changePct>=0?'+':'')+spyLive.changePct?.toFixed(2)+'%');
-      _patchText('lf-spy', '$'+spyLive.price.toFixed(2));
-    }
-  }
-
-  // ── Summary values — always patch in-place ────────────────────────────
-  _patchText('ls-mv',  totalMktVal?'$'+totalMktVal.toLocaleString(undefined,{maximumFractionDigits:0}):'—', 'var(--creamb)');
-  _patchText('ls-pnl', totalPnl?money(totalPnl):'—', colorFor(totalPnl));
-  _patchText('ls-al',  avgAlpha!=null?pct(avgAlpha):'—', colorFor(avgAlpha));
-  _patchText('ls-bt',  validRows.length?beating+' / '+validRows.length:'—');
+      const barColor = r.al>0?'var(--jade)':'var(--red)';
+      const priceCell = r.now
+        ? `<span style="font-family:monospace;font-weight:700;color:var(--creamb)">$${r.now.toFixed(2)}</span>`
+        : `<span class="price-loading">fetching…</span>`;
+      const changeCell = r.changePct!=null
+        ? `<span class="${r.changePct>=0?'change-pos':'change-neg'}" style="font-family:monospace">${r.changePct>=0?'+':''}${r.changePct.toFixed(2)}% ${r.change!=null?'('+(r.change>=0?'+':'')+r.change.toFixed(2)+')':''}</span>`
+        : '—';
+      return `<tr>
+        <td><span class="ticker-cell">${esc(r.ticker)}</span><span class="tag ${r.bucket}">${r.bucket}</span></td>
+        <td><div class="muted">$${r.entryPrice.toFixed(2)}</div><div class="muted">${r.entryDate}</div></td>
+        <td class="r">${priceCell}</td>
+        <td class="r">${changeCell}</td>
+        <td class="r ${clr(r.yr)}" style="font-family:monospace">${r.yr!=null?pct(r.yr):'—'}</td>
+        <td class="r ${clr(r.br)}" style="font-family:monospace">${r.br!=null?pct(r.br):'—'}</td>
+        <td class="r" style="font-family:monospace;font-weight:700;color:${colorFor(r.al)}">${r.al!=null?pct(r.al):'—'}</td>
+        <td class="r ${clr(r.pnl)}" style="font-family:monospace">${r.pnl!=null?money(r.pnl):'—'}</td>
+        <td style="width:110px;padding-right:12px">${r.al!=null?`<div class="alpha-bar-wrap"><div class="alpha-bar" style="width:${barW}%;background:${barColor}"></div></div>`:'—'}</td>
+      </tr>`;
+    }).join('')}
+    ${spyRow}
+    </tbody>
+  </table></div>
+  <div style="font-family:monospace;font-size:10px;color:var(--creamx);padding:8px 12px;border:1px solid var(--line);border-top:none;background:var(--deep)">
+    Live prices via Finnhub · refreshes every 60s · SPY: ${spyLive?'$'+spyLive.price.toFixed(2):'loading…'}
+    <button onclick="refreshAllPrices()" style="background:none;border:none;color:var(--brass);font-family:monospace;font-size:10px;cursor:pointer;margin-left:12px">↻ refresh now</button>
+  </div>`;
 }
 
 // ── RENDER VERDICT ─────────────────────────────────────────────────────────
@@ -898,6 +825,131 @@ function renderCharts(s){
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#FFFFFF',boxWidth:14}}},scales:{x:{grid:{color:g},ticks:{color:tk}},y:{grid:{color:g},ticks:{color:tk,callback:v=>v+'%'}}}}});
   alCh=new Chart(document.getElementById('alChart'),{type:'bar',data:{labels:s.tickers,datasets:[{label:'Alpha',data:s.alphas.map(a=>+(a*100).toFixed(2)),backgroundColor:s.alphas.map(a=>a>0?'rgba(0,176,111,0.8)':'rgba(255,68,68,0.8)'),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:tk}},y:{grid:{color:g},ticks:{color:tk,callback:v=>v+'%'}}}}});
 }
+
+// ── NEWS ──────────────────────────────────────────────────────────────────
+const News = {
+  _cache: {},
+
+  async refresh(){
+    const tickers=[...new Set(openPos().map(t=>t.ticker).filter(Boolean))];
+    const el=document.getElementById('news-container');
+    if(!tickers.length){el.innerHTML='<div class="empty">No open positions to fetch news for.</div>';return;}
+    el.innerHTML=tickers.map(tk=>`
+      <div class="news-card open" id="nc-${tk}">
+        <div class="news-card-head" onclick="News.toggle('${esc(tk)}')">
+          <div class="news-sent-dot" id="nd-${tk}" style="background:var(--creamx)"></div>
+          <div class="news-card-ticker">${esc(tk)}</div>
+          <div class="news-chevron">▼</div>
+        </div>
+        <div class="news-body">
+          <div class="news-spinner"><div class="spinner"></div>Fetching news…</div>
+        </div>
+      </div>`).join('');
+    await Promise.all(tickers.map(tk=>this._fetchTicker(tk)));
+  },
+
+  async _fetchTicker(ticker){
+    const now=new Date();
+    const from=new Date(now-7*86400000).toISOString().slice(0,10);
+    const to=now.toISOString().slice(0,10);
+    let articles=[];
+    try{
+      const r=await fetch(`https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${from}&to=${to}&token=${FINNHUB_KEY}`);
+      const d=await r.json();
+      if(Array.isArray(d)) articles=d.slice(0,5);
+    }catch(_){}
+    this._cache[ticker]=articles;
+    this._renderTicker(ticker,articles);
+  },
+
+  _renderTicker(ticker,articles){
+    const card=document.getElementById(`nc-${ticker}`);
+    if(!card) return;
+    const body=card.querySelector('.news-body');
+    const dot=document.getElementById(`nd-${ticker}`);
+    if(!articles.length){
+      body.innerHTML=`<div class="news-none">No recent news found for ${esc(ticker)}.</div>`;
+      dot.style.background='var(--creamx)';
+      return;
+    }
+    const verdict=this._verdict(articles,ticker);
+    const sc=verdict.sentiment==='Bullish'?'var(--jade)':verdict.sentiment==='Bearish'?'var(--red)':'var(--amber)';
+    dot.style.background=sc;
+    card.querySelector('.news-card-ticker').innerHTML=`${esc(ticker)}<span class="news-card-count">${articles.length} articles</span>`;
+    const arts=articles.map(a=>{
+      const date=a.datetime?new Date(a.datetime*1000).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+      const url=a.url?esc(a.url):'#';
+      const summary=this._oneSentence(a.summary||a.headline||'');
+      return`<div class="news-article">
+        <div class="news-headline"><a href="${url}" target="_blank" rel="noopener">${esc(a.headline||'No headline')}</a></div>
+        <div class="news-meta">${esc(a.source||'')}${date?' · '+date:''}</div>
+        <div class="news-summary">${esc(summary)}</div>
+      </div>`;
+    }).join('');
+    body.innerHTML=`${arts}
+      <div class="news-verdict">
+        <div class="nv-label" style="color:${sc}">AI Verdict · ${esc(ticker)}</div>
+        <div class="nv-sent" style="color:${sc}">${esc(verdict.sentiment)}</div>
+        <div class="nv-theme">${esc(verdict.theme)}</div>
+        <div class="nv-impact">${esc(verdict.impact)}</div>
+      </div>`;
+  },
+
+  toggle(ticker){
+    const card=document.getElementById(`nc-${ticker}`);
+    if(card) card.classList.toggle('open');
+  },
+
+  _oneSentence(text){
+    if(!text) return '';
+    const t=text.replace(/\s+/g,' ').trim();
+    const m=t.match(/^[^.!?]+[.!?]/);
+    return m?m[0]:t.slice(0,140)+(t.length>140?'…':'');
+  },
+
+  _verdict(articles,ticker){
+    const combined=articles.map(a=>(a.headline+' '+(a.summary||'')).toLowerCase()).join(' ');
+    const bWords=['beat','beats','upgrade','upgraded','buy rating','bullish','partnership','deal','launch','growth','record high','profit','revenue beat','raised guidance','expansion','acquisition','contract','strong earnings','positive','optimistic','rally','outperform'];
+    const rWords=['miss','misses','downgrade','downgraded','sell rating','bearish','lawsuit','loss','layoffs','layoff','guidance cut','decline','warns','disappoints','disappointing','fda reject','investigation','recall','fine','penalty','ceo resign','ceo fired','weak','fell short','below estimates'];
+    let bull=0,bear=0;
+    bWords.forEach(w=>{if(combined.includes(w))bull++;});
+    rWords.forEach(w=>{if(combined.includes(w))bear++;});
+    const sentiment=bull>bear+1?'Bullish':bear>bull+1?'Bearish':'Neutral';
+
+    let theme='Mixed coverage with no single dominant theme.';
+    if(/earnings|revenue|eps|quarterly results/.test(combined)){
+      const beat=/beat|exceeded|above estimates|topped/.test(combined);
+      const miss=/miss|fell short|below estimates|disappointed/.test(combined);
+      theme=beat?'Earnings beat — results came in above expectations.':miss?'Earnings miss — results fell short of estimates.':'Earnings in focus with mixed signals.';
+    } else if(/fda|approval|clinical trial|phase [23]/.test(combined)){
+      theme='Regulatory or clinical news driving coverage.';
+    } else if(/upgrade|downgrade|analyst|price target|rating/.test(combined)){
+      theme='Analyst activity — rating changes or price target moves.';
+    } else if(/acquisition|merger|deal|takeover|buyout/.test(combined)){
+      theme='M&A or partnership news in focus.';
+    } else if(/lawsuit|investigation|fine|penalty|sec|ftc/.test(combined)){
+      theme='Legal or regulatory risk headlines dominating.';
+    } else if(/ceo|cfo|executive|management|leadership/.test(combined)){
+      theme='Leadership or management change in the news.';
+    } else if(/guidance|outlook|forecast|raised|lowered/.test(combined)){
+      theme='Forward guidance and outlook driving sentiment.';
+    } else if(/product|launch|release|announced/.test(combined)){
+      theme='Product launch or announcement news.';
+    }
+
+    const h=articles[0]?.headline||'';
+    const hn=`"${h.slice(0,90)}${h.length>90?'…':''}"`;
+    let impact;
+    if(sentiment==='Bullish'){
+      impact=`News flow is positive for ${ticker} — ${bull} bullish signals across ${articles.length} articles. Recent coverage supports the thesis. Key headline: ${hn}.`;
+    } else if(sentiment==='Bearish'){
+      impact=`News flow is negative for ${ticker} — ${bear} bearish signals across ${articles.length} articles. Review your thesis against current headlines. Key concern: ${hn}.`;
+    } else {
+      impact=`Sentiment is mixed for ${ticker}: ${bull} bullish vs ${bear} bearish signals across ${articles.length} articles. No strong directional catalyst detected. Monitor for developing themes.`;
+    }
+    return {sentiment,theme,impact};
+  }
+};
 
 function renderAll(){
   const s=buildStats();
@@ -1017,7 +1069,6 @@ function updateMarketTimer(){
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
-Notif.init();
 updateMarketTimer();
 setInterval(updateMarketTimer, 1000);
 
