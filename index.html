@@ -701,18 +701,41 @@ function startRefresh(){
 }
 
 // ── RENDER LIVE SECTION ────────────────────────────────────────────────────
+let _liveRenderedKey = null;
+
+function _liveRowHtml(r, maxAbs){
+  const barW = r.al!=null?(Math.abs(r.al)/maxAbs*80).toFixed(1):0;
+  const barColor = r.al>0?'var(--jade)':'var(--red)';
+  const priceCell = r.now ? `<span style="font-family:monospace;font-weight:700;color:var(--creamb)">$${r.now.toFixed(2)}</span>` : `<span class="price-loading">fetching…</span>`;
+  const changeCell = r.changePct!=null ? `<span class="${r.changePct>=0?'change-pos':'change-neg'}" style="font-family:monospace">${r.changePct>=0?'+':''}${r.changePct.toFixed(2)}% ${r.change!=null?'('+(r.change>=0?'+':'')+r.change.toFixed(2)+')':''}</span>` : '—';
+  return `<tr id="lrow-${r.id}">
+    <td><span class="ticker-cell">${esc(r.ticker)}</span><span class="tag ${r.bucket}">${r.bucket}</span></td>
+    <td><div class="muted">$${r.entryPrice.toFixed(2)}</div><div class="muted">${r.entryDate}</div></td>
+    <td class="r" id="lp-${r.id}">${priceCell}</td>
+    <td class="r" id="lc-${r.id}">${changeCell}</td>
+    <td class="r" id="lyr-${r.id}" style="font-family:monospace;color:${colorFor(r.yr)}">${r.yr!=null?pct(r.yr):'—'}</td>
+    <td class="r" id="lbr-${r.id}" style="font-family:monospace;color:${colorFor(r.br)}">${r.br!=null?pct(r.br):'—'}</td>
+    <td class="r" id="la-${r.id}" style="font-family:monospace;font-weight:700;color:${colorFor(r.al)}">${r.al!=null?pct(r.al):'—'}</td>
+    <td class="r" id="ll-${r.id}" style="font-family:monospace;color:${colorFor(r.pnl)}">${r.pnl!=null?money(r.pnl):'—'}</td>
+    <td style="width:110px;padding-right:12px" id="lb-${r.id}">${r.al!=null?`<div class="alpha-bar-wrap"><div class="alpha-bar" style="width:${barW}%;background:${barColor}"></div></div>`:'—'}</td>
+  </tr>`;
+}
+
+function _patchCell(id, html){ const el=document.getElementById(id); if(el) el.innerHTML=html; }
+function _patchText(id, text, color){ const el=document.getElementById(id); if(el){el.textContent=text; if(color!==undefined)el.style.color=color;} }
+
 function renderLive(){
   const o = openPos();
   const sumEl = document.getElementById('live-sum');
   const panEl = document.getElementById('live-panel');
 
   if(!o.length){
+    _liveRenderedKey = null;
     sumEl.innerHTML='';
     panEl.innerHTML='<div class="empty">No open positions. Log a trade to begin tracking.</div>';
     return;
   }
 
-  // Build rows
   const rows = o.map(t=>{
     const live = liveCache[t.ticker];
     const now = live?.price||null;
@@ -731,59 +754,57 @@ function renderLive(){
   const totalMktVal = rows.reduce((s,r)=>s+(r.mktVal||0),0);
   const avgAlpha = validRows.length?mean(validRows.map(r=>r.al)):null;
   const beating = validRows.filter(r=>r.al>0).length;
-
-  // Summary tiles
-  sumEl.innerHTML=`
-    <div class="live-sum-cell"><div class="ls-lbl">Total Market Value</div><div class="ls-val" style="color:var(--creamb)">${totalMktVal?'$'+totalMktVal.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}</div></div>
-    <div class="live-sum-cell"><div class="ls-lbl">Unrealized P&L</div><div class="ls-val" style="color:${colorFor(totalPnl)}">${totalPnl?money(totalPnl):'—'}</div></div>
-    <div class="live-sum-cell"><div class="ls-lbl">Avg Alpha vs SPY</div><div class="ls-val" style="color:${colorFor(avgAlpha)}">${avgAlpha!=null?pct(avgAlpha):'—'}</div></div>
-    <div class="live-sum-cell"><div class="ls-lbl">Beating SPY</div><div class="ls-val" style="color:var(--creamb)">${validRows.length?beating+' / '+validRows.length:'—'}</div></div>`;
-
   const maxAbs = Math.max(0.001,...validRows.map(r=>Math.abs(r.al)));
-  const spyRow = spyLive?`<tr style="background:rgba(200,169,106,0.05)">
-    <td colspan="2"><span class="ticker-cell" style="color:var(--brass)">SPY</span><span class="muted" style="margin-left:8px">benchmark</span></td>
-    <td class="r" style="font-family:monospace;font-weight:700;color:var(--brass)">$${spyLive.price.toFixed(2)}</td>
-    <td class="r ${spyLive.changePct>=0?'pos':'neg'}">${spyLive.changePct>=0?'+':''}${spyLive.changePct?.toFixed(2)}%</td>
-    <td colspan="5" class="muted">S&P 500 ETF — your benchmark</td>
-  </tr>`:'';
+  const structKey = o.map(t=>t.id).join(',');
 
-  panEl.innerHTML=`<div class="live-tbl"><table>
-    <thead><tr>
-      <th>Ticker</th><th>Entry</th>
-      <th class="r">Live Price</th><th class="r">Day Change</th>
-      <th class="r">Your Return</th><th class="r">SPY Return</th>
-      <th class="r">Alpha</th><th class="r">Unreal P&L</th>
-      <th>vs SPY</th>
-    </tr></thead>
-    <tbody>
-    ${rows.map(r=>{
+  if(_liveRenderedKey !== structKey){
+    // ── Full render (structure changed) ──────────────────────────────────
+    _liveRenderedKey = structKey;
+    sumEl.innerHTML=`
+      <div class="live-sum-cell"><div class="ls-lbl">Total Market Value</div><div class="ls-val" id="ls-mv">—</div></div>
+      <div class="live-sum-cell"><div class="ls-lbl">Unrealized P&L</div><div class="ls-val" id="ls-pnl">—</div></div>
+      <div class="live-sum-cell"><div class="ls-lbl">Avg Alpha vs SPY</div><div class="ls-val" id="ls-al">—</div></div>
+      <div class="live-sum-cell"><div class="ls-lbl">Beating SPY</div><div class="ls-val" id="ls-bt" style="color:var(--creamb)">—</div></div>`;
+
+    const spyRow = spyLive?`<tr id="lrow-spy">
+      <td colspan="2"><span class="ticker-cell" style="color:var(--brass)">SPY</span><span class="muted" style="margin-left:8px">benchmark</span></td>
+      <td class="r" id="lp-spy" style="font-family:monospace;font-weight:700;color:var(--brass)">$${spyLive.price.toFixed(2)}</td>
+      <td class="r ${spyLive.changePct>=0?'pos':'neg'}" id="lc-spy">${spyLive.changePct>=0?'+':''}${spyLive.changePct?.toFixed(2)}%</td>
+      <td colspan="5" class="muted">S&P 500 ETF — your benchmark</td>
+    </tr>`:'';
+
+    panEl.innerHTML=`<div class="live-tbl"><table>
+      <thead><tr><th>Ticker</th><th>Entry</th><th class="r">Live Price</th><th class="r">Day Change</th><th class="r">Your Return</th><th class="r">SPY Return</th><th class="r">Alpha</th><th class="r">Unreal P&L</th><th>vs SPY</th></tr></thead>
+      <tbody>${rows.map(r=>_liveRowHtml(r,maxAbs)).join('')}${spyRow}</tbody>
+    </table></div>
+    <div id="live-footer" style="font-family:monospace;font-size:10px;color:var(--creamx);padding:8px 12px;border:1px solid var(--line);border-top:none;background:var(--inst);border-radius:0 0 12px 12px">
+      Live via Finnhub · SPY: <span id="lf-spy">${spyLive?'$'+spyLive.price.toFixed(2):'loading…'}</span>
+      <button onclick="refreshAllPrices()" style="background:none;border:none;color:var(--brass);font-family:monospace;font-size:10px;cursor:pointer;margin-left:12px">↻ refresh now</button>
+    </div>`;
+  } else {
+    // ── In-place patch — only update values, no DOM structure change ──────
+    rows.forEach(r=>{
+      _patchCell(`lp-${r.id}`, r.now?`<span style="font-family:monospace;font-weight:700;color:var(--creamb)">$${r.now.toFixed(2)}</span>`:`<span class="price-loading">fetching…</span>`);
+      _patchCell(`lc-${r.id}`, r.changePct!=null?`<span class="${r.changePct>=0?'change-pos':'change-neg'}" style="font-family:monospace">${r.changePct>=0?'+':''}${r.changePct.toFixed(2)}% ${r.change!=null?'('+(r.change>=0?'+':'')+r.change.toFixed(2)+')':''}</span>`:'—');
+      _patchText(`lyr-${r.id}`, r.yr!=null?pct(r.yr):'—', colorFor(r.yr));
+      _patchText(`lbr-${r.id}`, r.br!=null?pct(r.br):'—', colorFor(r.br));
+      _patchText(`la-${r.id}`,  r.al!=null?pct(r.al):'—',  colorFor(r.al));
+      _patchText(`ll-${r.id}`,  r.pnl!=null?money(r.pnl):'—', colorFor(r.pnl));
       const barW = r.al!=null?(Math.abs(r.al)/maxAbs*80).toFixed(1):0;
-      const barColor = r.al>0?'var(--jade)':'var(--red)';
-      const priceCell = r.now
-        ? `<span style="font-family:monospace;font-weight:700;color:var(--creamb)">$${r.now.toFixed(2)}</span>`
-        : `<span class="price-loading">fetching…</span>`;
-      const changeCell = r.changePct!=null
-        ? `<span class="${r.changePct>=0?'change-pos':'change-neg'}" style="font-family:monospace">${r.changePct>=0?'+':''}${r.changePct.toFixed(2)}% ${r.change!=null?'('+(r.change>=0?'+':'')+r.change.toFixed(2)+')':''}</span>`
-        : '—';
-      return `<tr>
-        <td><span class="ticker-cell">${esc(r.ticker)}</span><span class="tag ${r.bucket}">${r.bucket}</span></td>
-        <td><div class="muted">$${r.entryPrice.toFixed(2)}</div><div class="muted">${r.entryDate}</div></td>
-        <td class="r">${priceCell}</td>
-        <td class="r">${changeCell}</td>
-        <td class="r ${clr(r.yr)}" style="font-family:monospace">${r.yr!=null?pct(r.yr):'—'}</td>
-        <td class="r ${clr(r.br)}" style="font-family:monospace">${r.br!=null?pct(r.br):'—'}</td>
-        <td class="r" style="font-family:monospace;font-weight:700;color:${colorFor(r.al)}">${r.al!=null?pct(r.al):'—'}</td>
-        <td class="r ${clr(r.pnl)}" style="font-family:monospace">${r.pnl!=null?money(r.pnl):'—'}</td>
-        <td style="width:110px;padding-right:12px">${r.al!=null?`<div class="alpha-bar-wrap"><div class="alpha-bar" style="width:${barW}%;background:${barColor}"></div></div>`:'—'}</td>
-      </tr>`;
-    }).join('')}
-    ${spyRow}
-    </tbody>
-  </table></div>
-  <div style="font-family:monospace;font-size:10px;color:var(--creamx);padding:8px 12px;border:1px solid var(--line);border-top:none;background:var(--deep)">
-    Live prices via Finnhub · refreshes every 60s · SPY: ${spyLive?'$'+spyLive.price.toFixed(2):'loading…'}
-    <button onclick="refreshAllPrices()" style="background:none;border:none;color:var(--brass);font-family:monospace;font-size:10px;cursor:pointer;margin-left:12px">↻ refresh now</button>
-  </div>`;
+      _patchCell(`lb-${r.id}`, r.al!=null?`<div class="alpha-bar-wrap"><div class="alpha-bar" style="width:${barW}%;background:${r.al>0?'var(--jade)':'var(--red)'}"></div></div>`:'—');
+    });
+    if(spyLive){
+      _patchText('lp-spy', '$'+spyLive.price.toFixed(2));
+      _patchText('lc-spy', (spyLive.changePct>=0?'+':'')+spyLive.changePct?.toFixed(2)+'%');
+      _patchText('lf-spy', '$'+spyLive.price.toFixed(2));
+    }
+  }
+
+  // ── Summary values — always patch in-place ────────────────────────────
+  _patchText('ls-mv',  totalMktVal?'$'+totalMktVal.toLocaleString(undefined,{maximumFractionDigits:0}):'—', 'var(--creamb)');
+  _patchText('ls-pnl', totalPnl?money(totalPnl):'—', colorFor(totalPnl));
+  _patchText('ls-al',  avgAlpha!=null?pct(avgAlpha):'—', colorFor(avgAlpha));
+  _patchText('ls-bt',  validRows.length?beating+' / '+validRows.length:'—');
 }
 
 // ── RENDER VERDICT ─────────────────────────────────────────────────────────
