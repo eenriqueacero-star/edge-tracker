@@ -6,6 +6,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Edge Tracker — Edwins Investments</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#1a1410;--panel:#221a13;--deep:#0e0907;--inst:#08060a;--line:#3a2d20;--lineb:#5a4730;--brass:#c8a96a;--brassb:#e6cf99;--brassd:#8a7340;--ox:#9a2828;--jade:#6fb592;--jaded:#2e5a47;--cream:#ede1c8;--creamb:#faf2dc;--creamd:#b8a98a;--creamx:#877a60;--red:#d04a45;--violet:#a387c4;--amber:#ffb000}
@@ -123,10 +126,52 @@ tr:hover td{background:var(--panel)}
 .mt-label{font-family:monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--creamx);margin-bottom:5px}
 .mt-count{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:800;line-height:1;letter-spacing:2px;color:var(--brassb)}
 .mt-sub{font-family:monospace;font-size:9px;color:var(--creamx);margin-top:5px;letter-spacing:1px}
+
+/* auth screen */
+#auth-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:2000;align-items:center;justify-content:center;padding:20px}
+.auth-panel{background:linear-gradient(135deg,var(--panel),var(--deep));border:1px solid var(--lineb);border-top:2px solid var(--brass);max-width:420px;width:100%;padding:36px 32px;box-shadow:0 30px 80px rgba(0,0,0,0.7)}
+.auth-brand{font-size:28px;font-weight:700;color:var(--creamb);letter-spacing:-0.5px}
+.auth-brand-sub{font-family:monospace;font-size:9px;letter-spacing:6px;text-transform:uppercase;color:var(--brass);margin-bottom:28px;margin-top:3px}
+.auth-mode{font-size:18px;font-weight:700;color:var(--creamb);margin-bottom:20px}
+.auth-err{font-family:monospace;font-size:11px;color:var(--red);min-height:18px;margin-bottom:10px}
+.auth-sep{height:1px;background:var(--line);margin:20px 0}
+.auth-toggle-btn{background:none;border:none;color:var(--brass);font-family:monospace;font-size:11px;cursor:pointer;text-decoration:underline;padding:0}
+.auth-toggle-btn:hover{color:var(--brassb)}
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-panel">
+    <div class="auth-brand">Edge Tracker</div>
+    <div class="auth-brand-sub">Edwins Investments</div>
+    <div class="auth-mode" id="auth-mode-title">Sign In</div>
+    <div class="auth-err" id="auth-err"></div>
+    <div style="display:flex;flex-direction:column;gap:13px">
+      <div>
+        <label class="flabel">Email</label>
+        <input class="finput" id="a-email" type="email" placeholder="you@email.com" autocomplete="email">
+      </div>
+      <div>
+        <label class="flabel">Password</label>
+        <input class="finput" id="a-pass" type="password" placeholder="Password" autocomplete="current-password">
+      </div>
+      <div id="a-pass2-wrap" style="display:none">
+        <label class="flabel">Confirm Password</label>
+        <input class="finput" id="a-pass2" type="password" placeholder="Confirm password" autocomplete="new-password">
+      </div>
+    </div>
+    <button class="btn primary" id="auth-submit-btn" onclick="Auth.submit()" style="width:100%;margin-top:20px;justify-content:center">Sign In</button>
+    <div class="auth-sep"></div>
+    <div style="text-align:center;font-family:monospace;font-size:11px;color:var(--creamx)">
+      <span id="auth-toggle-label">Don't have an account?</span>
+      <button class="auth-toggle-btn" id="auth-toggle-btn" onclick="Auth.toggleMode()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="main-wrap" style="display:none">
 
 <div class="topbar">
   <div>
@@ -140,9 +185,11 @@ tr:hover td{background:var(--panel)}
   </div>
   <div class="actions">
     <span class="sync" id="sync-st"></span>
+    <span style="font-family:monospace;font-size:10px;color:var(--creamx)" id="user-email-display"></span>
     <button class="btn" onclick="App.loadSample()">Example Data</button>
     <button class="btn danger" onclick="App.askClear()">Clear All</button>
     <button class="btn primary" onclick="App.openAdd()">+ Log Trade</button>
+    <button class="btn" onclick="Auth.signOut()" title="Sign out">Sign Out</button>
   </div>
 </div>
 
@@ -267,19 +314,114 @@ tr:hover td{background:var(--panel)}
 </div>
 
 <script>
-const KEY = 'edwins-edge-tracker-v1';
+// ── FIREBASE CONFIG ────────────────────────────────────────────────────────
+// 1. Go to https://console.firebase.google.com and create a project
+// 2. Add a Web App, copy the config below
+// 3. Enable Authentication > Sign-in method > Email/Password
+// 4. Enable Firestore Database (start in production mode)
+// 5. Set Firestore Rules to:
+//      rules_version = '2';
+//      service cloud.firestore {
+//        match /databases/{database}/documents {
+//          match /users/{userId} {
+//            allow read, write: if request.auth != null && request.auth.uid == userId;
+//          }
+//        }
+//      }
+const firebaseConfig = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
 const FINNHUB_KEY = 'd8fmkt1r01qn443aoep0d8fmkt1r01qn443aoepg';
-const REFRESH_MS = 60000; // refresh every 60 seconds
+const REFRESH_MS = 60000;
 
 let trades = [], confirmCb = null, closingId = null, pBucket = 'core', pPlan = 'planned';
 let liveCache = {}, spyLive = null;
 let eqCh = null, alCh = null, tsCh = null;
 let refreshTimer = null;
+let currentUser = null;
 
-// ── storage ────────────────────────────────────────────────────────────────
+// ── AUTH ───────────────────────────────────────────────────────────────────
+const Auth = {
+  mode: 'signin',
+  toggleMode(){
+    this.mode = this.mode === 'signin' ? 'signup' : 'signin';
+    const su = this.mode === 'signup';
+    document.getElementById('a-pass2-wrap').style.display = su ? '' : 'none';
+    document.getElementById('auth-submit-btn').textContent = su ? 'Create Account' : 'Sign In';
+    document.getElementById('auth-mode-title').textContent = su ? 'Create Account' : 'Sign In';
+    document.getElementById('auth-toggle-label').textContent = su ? 'Already have an account?' : "Don't have an account?";
+    document.getElementById('auth-toggle-btn').textContent = su ? 'Sign In' : 'Create Account';
+    document.getElementById('auth-err').textContent = '';
+  },
+  async submit(){
+    const email = document.getElementById('a-email').value.trim();
+    const pass  = document.getElementById('a-pass').value;
+    const pass2 = document.getElementById('a-pass2').value;
+    const errEl = document.getElementById('auth-err');
+    errEl.textContent = '';
+    if(!email || !pass){ errEl.textContent = 'Email and password are required.'; return; }
+    if(this.mode === 'signup'){
+      if(pass !== pass2){ errEl.textContent = 'Passwords do not match.'; return; }
+      if(pass.length < 6){ errEl.textContent = 'Password must be at least 6 characters.'; return; }
+      try{ await auth.createUserWithEmailAndPassword(email, pass); }
+      catch(e){ errEl.textContent = this.msg(e); }
+    } else {
+      try{ await auth.signInWithEmailAndPassword(email, pass); }
+      catch(e){ errEl.textContent = this.msg(e); }
+    }
+  },
+  async signOut(){
+    if(refreshTimer) clearInterval(refreshTimer);
+    trades = [];
+    await auth.signOut();
+  },
+  msg(e){
+    const map = {
+      'auth/email-already-in-use':'Email already in use.',
+      'auth/invalid-email':'Invalid email address.',
+      'auth/weak-password':'Password is too weak.',
+      'auth/user-not-found':'No account found with this email.',
+      'auth/wrong-password':'Incorrect password.',
+      'auth/invalid-credential':'Invalid email or password.',
+      'auth/too-many-requests':'Too many attempts. Try again later.',
+    };
+    return map[e.code] || e.message;
+  }
+};
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && document.getElementById('auth-screen').style.display === 'flex') Auth.submit();
+});
+
+// ── STORAGE ────────────────────────────────────────────────────────────────
 function setSt(m, c){ const e = document.getElementById('sync-st'); if(e){ e.textContent = m; e.style.color = c||''; } }
-function load(){ try{ const r = localStorage.getItem(KEY); if(r) trades = JSON.parse(r); }catch(e){ trades = []; } }
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(trades)); setSt('✓ saved','#6fb592'); }catch(e){ setSt('save err','#d04a45'); } }
+
+async function loadFromFirestore(){
+  if(!currentUser) return;
+  try{
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    trades = (doc.exists && doc.data().trades) ? doc.data().trades : [];
+  }catch(e){ trades = []; }
+  renderAll();
+  startRefresh();
+}
+
+async function save(){
+  if(!currentUser) return;
+  try{
+    await db.collection('users').doc(currentUser.uid).set({ trades });
+    setSt('✓ saved','#6fb592');
+  }catch(e){ setSt('save err','#d04a45'); }
+}
 
 // ── math core ──────────────────────────────────────────────────────────────
 const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0;
@@ -638,11 +780,26 @@ function updateMarketTimer(){
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
-load();
-renderAll();
-startRefresh();
 updateMarketTimer();
-setInterval(updateMarketTimer,1000);
+setInterval(updateMarketTimer, 1000);
+
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  const authScreen = document.getElementById('auth-screen');
+  const mainWrap   = document.getElementById('main-wrap');
+  if(user){
+    authScreen.style.display = 'none';
+    mainWrap.style.display   = '';
+    document.getElementById('user-email-display').textContent = user.email;
+    loadFromFirestore();
+  } else {
+    mainWrap.style.display   = 'none';
+    authScreen.style.display = 'flex';
+    document.getElementById('user-email-display').textContent = '';
+    trades = [];
+    if(refreshTimer) clearInterval(refreshTimer);
+  }
+});
 </script>
 </body>
 </html>
