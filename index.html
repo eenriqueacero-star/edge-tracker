@@ -239,6 +239,19 @@ tr:hover td{background:rgba(99,102,241,0.06)}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
 .toggle-row.sm{padding:9px 0}
 .toggle-row:last-of-type{border-bottom:none}
+/* scout picks */
+.scout-card{background:var(--inst);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:transform 0.15s,box-shadow 0.15s}
+.scout-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,0.12)}
+.scout-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.scout-ticker{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:500;color:var(--creamb);letter-spacing:1px}
+.scout-risk{font-family:'Inter',sans-serif;font-size:11px;font-weight:600}
+.scout-levels{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.scout-level{display:flex;justify-content:space-between;align-items:center}
+.scout-level-lbl{font-family:'Inter',sans-serif;font-size:11px;font-weight:500;color:var(--creamx);text-transform:uppercase;letter-spacing:0.5px}
+.scout-level-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--creamb)}
+.scout-conf-bar-wrap{margin-bottom:12px}
+.scout-signals{display:flex;flex-wrap:wrap;gap:5px}
+.scout-signal{font-family:'Inter',sans-serif;font-size:10px;font-weight:500;padding:3px 9px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:100px;color:var(--creamd)}
 </style>
 </head>
 <body>
@@ -356,6 +369,15 @@ tr:hover td{background:rgba(99,102,241,0.06)}
     <div class="live-sum" id="live-sum"></div>
     <div id="live-panel"></div>
   </div>
+</div>
+
+<div class="sec" id="scout-sec">
+  <div class="sec-head">
+    <div class="sec-title">🔍 Scout Picks</div>
+    <div class="sec-note">technical setups · updated hourly during market hours</div>
+  </div>
+  <div id="scout-container"><div class="empty">Scout picks appear here during market hours (Mon–Fri, 9am–4pm ET).</div></div>
+</div>
 </div>
 
 <!-- NEWS TAB -->
@@ -512,6 +534,48 @@ tr:hover td{background:rgba(99,102,241,0.06)}
     </div>
   </div>
 
+  <!-- Stock Scout Alerts -->
+  <div class="settings-card">
+    <div class="settings-card-header">🔍 Stock Scout Alerts</div>
+    <div class="settings-card-body">
+      <p style="font-size:13px;color:var(--creamd);margin-bottom:16px;line-height:1.6">Scans 35+ stocks every hour during market hours using RSI, SMA crossovers, volume spikes, and momentum. Sends Telegram alerts with entry, stop loss, take profit, confidence, and risk scores.</p>
+      <div class="toggle-row" style="border-bottom:none;margin-bottom:18px">
+        <div>
+          <div style="font-weight:700;color:var(--creamb);font-size:14px">Enable Scout Alerts</div>
+          <div style="font-size:12px;color:var(--creamx);margin-top:2px">Receive Telegram alerts for high-confidence setups — works even when the app is closed</div>
+        </div>
+        <label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-scout-enabled" onchange="Settings.saveScoutAlerts()"><span class="toggle-pill"></span></label>
+      </div>
+      <div class="toggle-row sm">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--creamd)">Min Confidence Score</div>
+          <div style="font-size:11px;color:var(--creamx)">Only alert when confidence is at or above this level</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="scout-conf-val" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--brass);min-width:36px;text-align:right">65%</span>
+          <input type="range" id="s-scout-conf" min="40" max="90" step="5" value="65" oninput="document.getElementById('scout-conf-val').textContent=this.value+'%'" onchange="Settings.saveScoutAlerts()" style="width:90px;accent-color:var(--brass)">
+        </div>
+      </div>
+      <div class="toggle-row sm">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--creamd)">Max Risk Score</div>
+          <div style="font-size:11px;color:var(--creamx)">Skip alerts for trades with risk above this (1 = low, 10 = high)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="scout-risk-val" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--brass);min-width:24px;text-align:right">7</span>
+          <input type="range" id="s-scout-risk" min="1" max="10" step="1" value="7" oninput="document.getElementById('scout-risk-val').textContent=this.value" onchange="Settings.saveScoutAlerts()" style="width:90px;accent-color:var(--brass)">
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="btn primary" onclick="Settings.testScoutAlert()">Send Test Message</button>
+        <span id="s-scout-status" style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700"></span>
+      </div>
+      <div style="background:var(--panel);border-radius:10px;padding:12px 14px;border:1px solid var(--line);margin-top:14px;font-size:12px;color:var(--creamx);line-height:1.6">
+        Requires your Telegram Chat ID set in <b style="color:var(--creamd)">Stock Price Alerts</b> above.
+      </div>
+    </div>
+  </div>
+
   <!-- Account -->
   <div class="settings-card">
     <div class="settings-card-header">🔐 Account</div>
@@ -655,7 +719,8 @@ let userSettings = {
   username:'', telegramChatId:'',
   priceAlertsEnabled:false, alertOnDrop5:true, alertOnPump5:true, alertOnAlphaNeg:true, alertOnDown10:false,
   newsAlertsEnabled:false, alertOnNewArticle:false, alertOnSentimentChange:true, alertOnBreaking:true,
-  newsCheckFrequency:30
+  newsCheckFrequency:30,
+  stockScoutEnabled:false, scoutMinConfidence:65, scoutMaxRisk:7
 };
 
 // ── PROFILE ────────────────────────────────────────────────────────────────
@@ -896,6 +961,33 @@ const Settings = {
     if(ns) ns.checked=userSettings.alertOnSentimentChange;
     if(nb) nb.checked=userSettings.alertOnBreaking;
     if(nf) nf.value=userSettings.newsCheckFrequency;
+    const se2=document.getElementById('s-scout-enabled');
+    const sc=document.getElementById('s-scout-conf');
+    const sr=document.getElementById('s-scout-risk');
+    if(se2) se2.checked=userSettings.stockScoutEnabled;
+    if(sc){sc.value=userSettings.scoutMinConfidence;const cv=document.getElementById('scout-conf-val');if(cv)cv.textContent=userSettings.scoutMinConfidence+'%';}
+    if(sr){sr.value=userSettings.scoutMaxRisk;const rv=document.getElementById('scout-risk-val');if(rv)rv.textContent=userSettings.scoutMaxRisk;}
+  },
+  async saveScoutAlerts(){
+    userSettings.stockScoutEnabled=document.getElementById('s-scout-enabled').checked;
+    userSettings.scoutMinConfidence=parseInt(document.getElementById('s-scout-conf').value)||65;
+    userSettings.scoutMaxRisk=parseInt(document.getElementById('s-scout-risk').value)||7;
+    if(currentUser){
+      db.collection('users').doc(currentUser.uid).set({
+        stockScoutEnabled:userSettings.stockScoutEnabled,
+        scoutMinConfidence:userSettings.scoutMinConfidence,
+        scoutMaxRisk:userSettings.scoutMaxRisk
+      },{merge:true}).catch(()=>{});
+    }
+  },
+  async testScoutAlert(){
+    const chatId=userSettings.telegramChatId;
+    const st=document.getElementById('s-scout-status');
+    if(!chatId){st.textContent='✗ Enter your chat ID in Price Alerts first';st.style.color='var(--red)';setTimeout(()=>{st.textContent='';st.style.color='';},3000);return;}
+    const ok=await sendTelegram(chatId,'🔍 <b>Edge Tracker Scout</b> is linked!\n\nYou\'ll receive alerts when high-confidence short-term setups are detected. Each alert includes entry, stop loss, take profit, confidence score, and risk score.');
+    st.textContent=ok?'✓ Message sent':'✗ Failed — check your chat ID';
+    st.style.color=ok?'var(--jade)':'var(--red)';
+    setTimeout(()=>{st.textContent='';st.style.color='';},3500);
   }
 };
 
@@ -1035,6 +1127,9 @@ async function loadFromFirestore(){
     userSettings.alertOnSentimentChange=data.alertOnSentimentChange??true;
     userSettings.alertOnBreaking=data.alertOnBreaking??true;
     userSettings.newsCheckFrequency=data.newsCheckFrequency??30;
+    userSettings.stockScoutEnabled=data.stockScoutEnabled??false;
+    userSettings.scoutMinConfidence=data.scoutMinConfidence??65;
+    userSettings.scoutMaxRisk=data.scoutMaxRisk??7;
     Object.assign(alertCooldowns,data.alertCooldowns||{});
   }catch(e){ trades=[]; }
   userProfile.username=userSettings.username||(currentUser.email||'').split('@')[0];
@@ -1045,6 +1140,7 @@ async function loadFromFirestore(){
   startRefresh();
   News.refresh();
   News.scheduleRefresh();
+  ScoutPicks.load();
   showGreeting();
 }
 
@@ -1607,6 +1703,60 @@ function updateMarketTimer(){
     sub.style.color='var(--creamx)';
   }
 }
+
+// ── SCOUT PICKS ───────────────────────────────────────────────────────────
+const ScoutPicks = {
+  async load(){
+    try{
+      const doc=await db.collection('stockScouts').doc('latest').get();
+      if(!doc.exists) return;
+      const {picks,generatedAt}=doc.data();
+      this._render(picks,generatedAt);
+    }catch(_){}
+  },
+  _render(picks,generatedAt){
+    const el=document.getElementById('scout-container');
+    if(!el) return;
+    if(!picks||!picks.length){
+      el.innerHTML='<div class="empty">No scout picks available yet. Picks generate hourly during market hours (Mon–Fri).</div>';
+      return;
+    }
+    const age=Math.floor((Date.now()-generatedAt)/60000);
+    const ageStr=age<60?age+'m ago':Math.floor(age/60)+'h ago';
+    let html=`<div style="font-size:11px;color:var(--creamx);margin-bottom:14px;font-family:'Inter',sans-serif">Last scan: <b>${ageStr}</b> &nbsp;·&nbsp; ${picks.length} pick${picks.length!==1?'s':''} found</div>`;
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">';
+    for(const p of picks){
+      const riskColor=p.risk<=3?'var(--jade)':p.risk<=6?'var(--amber)':'var(--red)';
+      const confColor=p.confidence>=70?'var(--jade)':p.confidence>=50?'var(--amber)':'var(--red)';
+      const upside=(((p.takeProfit-p.entry)/p.entry)*100).toFixed(1);
+      const downside=(((p.entry-p.stopLoss)/p.entry)*100).toFixed(1);
+      const riskEmoji=p.risk<=3?'🟢':p.risk<=6?'🟡':'🔴';
+      html+=`<div class="scout-card">
+        <div class="scout-card-header">
+          <span class="scout-ticker">${p.ticker}</span>
+          <span class="scout-risk" style="color:${riskColor}">${riskEmoji} Risk ${p.risk}/10</span>
+        </div>
+        <div class="scout-levels">
+          <div class="scout-level"><span class="scout-level-lbl">Entry</span><span class="scout-level-val">$${p.entry}</span></div>
+          <div class="scout-level"><span class="scout-level-lbl">Stop Loss</span><span class="scout-level-val neg">$${p.stopLoss} <span class="muted">−${downside}%</span></span></div>
+          <div class="scout-level"><span class="scout-level-lbl">Take Profit</span><span class="scout-level-val pos">$${p.takeProfit} <span class="muted">+${upside}%</span></span></div>
+        </div>
+        <div class="scout-conf-bar-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:10px;font-weight:600;color:var(--creamx);letter-spacing:1px;text-transform:uppercase">Confidence</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:${confColor}">${p.confidence}%</span>
+          </div>
+          <div style="height:4px;background:var(--line);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${p.confidence}%;background:${confColor};border-radius:4px;transition:width 0.7s ease"></div>
+          </div>
+        </div>
+        <div class="scout-signals">${p.signals.slice(0,2).map(s=>`<span class="scout-signal">${s}</span>`).join('')}</div>
+      </div>`;
+    }
+    html+='</div><p style="font-size:11px;color:var(--creamx);margin-top:14px;font-style:italic">Not financial advice. Always use proper position sizing and risk management.</p>';
+    el.innerHTML=html;
+  }
+};
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 updateMarketTimer();

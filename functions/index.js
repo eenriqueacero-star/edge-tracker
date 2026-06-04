@@ -296,3 +296,157 @@ exports.checkNewsAlerts = onSchedule('every 30 minutes', async () => {
     }
   }
 });
+
+// ── stock scout ────────────────────────────────────────────────────────────
+
+const SCOUT_UNIVERSE = [
+  'AAPL','MSFT','NVDA','TSLA','META','GOOGL','AMZN','AMD','NFLX','UBER',
+  'JPM','BAC','GS','V','MA','PYPL',
+  'JNJ','PFE','UNH',
+  'XOM','CVX','OXY',
+  'WMT','COST','NKE','MCD',
+  'PLTR','SOFI','MSTR','COIN','RIVN',
+  'DIS','ORCL','CRM','INTC','MU','SNOW','SHOP'
+];
+
+function calcRSI(closes, period = 14) {
+  if (closes.length < period + 1) return 50;
+  let gains = 0, losses = 0;
+  for (let i = closes.length - period; i < closes.length; i++) {
+    const diff = closes[i] - closes[i - 1];
+    if (diff > 0) gains += diff; else losses += Math.abs(diff);
+  }
+  const ag = gains / period, al = losses / period;
+  if (al === 0) return 100;
+  return +(100 - 100 / (1 + ag / al)).toFixed(1);
+}
+
+function calcATR(highs, lows, closes, period = 14) {
+  const n = closes.length;
+  if (n < period + 1) return highs[n - 1] - lows[n - 1];
+  const trs = [];
+  for (let i = n - period; i < n; i++) {
+    trs.push(Math.max(
+      highs[i] - lows[i],
+      Math.abs(highs[i] - closes[i - 1]),
+      Math.abs(lows[i] - closes[i - 1])
+    ));
+  }
+  return trs.reduce((a, b) => a + b, 0) / trs.length;
+}
+
+async function fetchCandles(ticker) {
+  try {
+    const to   = Math.floor(Date.now() / 1000);
+    const from = to - 35 * 86400;
+    const r = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${FINNHUB_KEY}`);
+    const d = await r.json();
+    if (d && d.s === 'ok' && d.c && d.c.length >= 15) return d;
+  } catch (_) {}
+  return null;
+}
+
+function scoreStock(candles, quote, ticker) {
+  const { c: closes, h: highs, l: lows, v: volumes } = candles;
+  const n = closes.length;
+  if (n < 21) return null;
+
+  const price    = quote.price;
+  const rsi      = calcRSI(closes);
+  const atr      = calcATR(highs, lows, closes);
+  const sma10    = closes.slice(-10).reduce((a, b) => a + b, 0) / 10;
+  const sma20    = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+  const avgVol   = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+  const volRatio = avgVol > 0 ? volumes[n - 1] / avgVol : 1;
+  const mom5     = n >= 6 ? ((closes[n - 1] - closes[n - 6]) / closes[n - 6]) * 100 : 0;
+  const atrPct   = atr / price;
+
+  let score = 0;
+  const signals = [];
+
+  if (rsi >= 35 && rsi <= 55)      { score += 25; signals.push(`RSI ${rsi} — oversold bounce setup`); }
+  else if (rsi >= 55 && rsi <= 68) { score += 15; signals.push(`RSI ${rsi} — bullish momentum range`); }
+  else if (rsi < 35)               { score += 10; signals.push(`RSI ${rsi} — deeply oversold`); }
+
+  if (price > sma10) { score += 10; signals.push('Price above 10-day SMA'); }
+  if (price > sma20) { score +=  5; signals.push('Price above 20-day SMA'); }
+  if (sma10 > sma20) { score +=  5; signals.push('Short-term uptrend (10 > 20 SMA)'); }
+
+  if (volRatio >= 2.0)      { score += 20; signals.push(`Volume ${volRatio.toFixed(1)}× avg — strong interest`); }
+  else if (volRatio >= 1.5) { score += 13; signals.push(`Volume ${volRatio.toFixed(1)}× avg`); }
+  else if (volRatio >= 1.2) { score +=  7; signals.push('Above-average volume'); }
+
+  if (mom5 >= 2 && mom5 <= 12)     { score += 20; signals.push(`+${mom5.toFixed(1)}% 5-day momentum`); }
+  else if (mom5 >= 0.5 && mom5 < 2){ score += 10; signals.push(`+${mom5.toFixed(1)}% momentum building`); }
+  else if (mom5 > 12)               { score +=  5; signals.push(`+${mom5.toFixed(1)}% — extended, caution`); }
+
+  if (quote.changePct >= 1 && quote.changePct <= 4)      { score += 15; signals.push(`+${quote.changePct.toFixed(2)}% today`); }
+  else if (quote.changePct >= 0.3 && quote.changePct < 1){ score +=  8; signals.push(`+${quote.changePct.toFixed(2)}% today`); }
+
+  let risk = 5;
+  if (atrPct > 0.05)        risk = 9;
+  else if (atrPct > 0.035)  risk = 7;
+  else if (atrPct > 0.025)  risk = 6;
+  else if (atrPct < 0.015)  risk = 3;
+
+  const confidence = Math.min(Math.round(score), 95);
+  const slDist     = Math.max(atr * 1.5, price * 0.025);
+  const entry      = +price.toFixed(2);
+  const stopLoss   = +(price - slDist).toFixed(2);
+  const takeProfit = +(price + slDist * 2.5).toFixed(2);
+
+  return { ticker, score, confidence, risk, entry, stopLoss, takeProfit, signals, rsi, mom5: +mom5.toFixed(2), volRatio: +volRatio.toFixed(2) };
+}
+
+exports.checkStockScout = onSchedule({
+  schedule: '0 9-16 * * 1-5',
+  timeZone: 'America/New_York'
+}, async () => {
+  const quotePairs = await Promise.all(SCOUT_UNIVERSE.map(tk => fetchQuote(tk)));
+  const quoteMap   = {};
+  SCOUT_UNIVERSE.forEach((tk, i) => { if (quotePairs[i]) quoteMap[tk] = quotePairs[i]; });
+
+  const candidates = SCOUT_UNIVERSE
+    .filter(tk => quoteMap[tk] && quoteMap[tk].changePct > 0.3)
+    .sort((a, b) => (quoteMap[b].changePct || 0) - (quoteMap[a].changePct || 0))
+    .slice(0, 15);
+
+  const picks = [];
+  for (const ticker of candidates) {
+    await new Promise(r => setTimeout(r, 350));
+    const candles = await fetchCandles(ticker);
+    if (!candles) continue;
+    const result = scoreStock(candles, quoteMap[ticker], ticker);
+    if (result && result.confidence >= 40) picks.push(result);
+  }
+
+  picks.sort((a, b) => b.score - a.score);
+  const topPicks = picks.slice(0, 5);
+  if (!topPicks.length) return;
+
+  await db.collection('stockScouts').doc('latest').set({ generatedAt: Date.now(), picks: topPicks });
+
+  const snap = await db.collection('users').get();
+  for (const doc of snap.docs) {
+    const data = doc.data();
+    const { stockScoutEnabled, telegramChatId, scoutMinConfidence = 60, scoutMaxRisk = 7 } = data;
+    if (!stockScoutEnabled || !telegramChatId) continue;
+
+    const eligible = topPicks.filter(p => p.confidence >= scoutMinConfidence && p.risk <= scoutMaxRisk);
+    if (!eligible.length) continue;
+
+    const dt = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    let msg = `🔍 <b>Edge Tracker — Scout Picks</b>\n<i>${dt} ET</i>\n\n`;
+    for (const p of eligible.slice(0, 3)) {
+      const riskEmoji = p.risk <= 3 ? '🟢' : p.risk <= 6 ? '🟡' : '🔴';
+      msg += `<b>${p.ticker}</b>  ${riskEmoji} Risk ${p.risk}/10\n`;
+      msg += `💰 Entry: <b>$${p.entry}</b>\n`;
+      msg += `🛑 Stop Loss: $${p.stopLoss}\n`;
+      msg += `🎯 Take Profit: $${p.takeProfit}\n`;
+      msg += `📊 Confidence: <b>${p.confidence}%</b>\n`;
+      msg += `💡 ${p.signals.slice(0, 2).join(' · ')}\n\n`;
+    }
+    msg += `<i>Not financial advice. Always manage your risk.</i>`;
+    await sendTelegram(telegramChatId, msg);
+  }
+});
