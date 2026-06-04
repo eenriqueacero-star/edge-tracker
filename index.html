@@ -358,6 +358,18 @@ tr:hover td{background:rgba(99,102,241,0.06)}
   </div>
 </div>
 
+<div class="sec" id="scout-sec">
+  <div class="sec-head">
+    <div class="sec-title">🔍 Scout Picks</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="sec-note">technical setups · run a scan anytime</div>
+      <button class="btn sm" onclick="ScoutPicks.scan()">↺ Scan Now</button>
+    </div>
+  </div>
+  <div id="scout-container"><div class="empty">Scout picks appear here during market hours (Mon–Fri, 9am–4pm ET).</div></div>
+</div>
+</div>
+
 <!-- NEWS TAB -->
 <div class="tab-panel" id="panel-news">
   <div class="sec" id="news-sec">
@@ -512,6 +524,53 @@ tr:hover td{background:rgba(99,102,241,0.06)}
     </div>
   </div>
 
+  <!-- Stock Scout Alerts -->
+  <div class="settings-card">
+    <div class="settings-card-header">🔍 Stock Scout Alerts</div>
+    <div class="settings-card-body">
+      <p style="font-size:13px;color:var(--creamd);margin-bottom:16px;line-height:1.6">Scans 100+ stocks for pre-run setups — accumulation, 52-week breakouts, volatility squeezes, and volume expansion. The kind of pattern that preceded MU's run. Add your own tickers to the watchlist.</p>
+      <div class="toggle-row" style="border-bottom:none;margin-bottom:18px">
+        <div>
+          <div style="font-weight:700;color:var(--creamb);font-size:14px">Enable Scout Alerts</div>
+          <div style="font-size:12px;color:var(--creamx);margin-top:2px">Receive Telegram alerts for high-confidence pre-run setups — works even when the app is closed</div>
+        </div>
+        <label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-scout-enabled" onchange="Settings.saveScoutAlerts()"><span class="toggle-pill"></span></label>
+      </div>
+      <div style="margin-bottom:16px">
+        <label class="flabel">Custom Watchlist</label>
+        <input class="finput" id="s-scout-tickers" placeholder="e.g. MSTR, HOOD, PLTR, ARM" onchange="Settings.saveScoutAlerts()" style="max-width:420px">
+        <div class="fhint">Comma-separated tickers to include alongside the default 100+ stock universe</div>
+      </div>
+      <div class="toggle-row sm">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--creamd)">Min Confidence Score</div>
+          <div style="font-size:11px;color:var(--creamx)">Only alert when confidence is at or above this level</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="scout-conf-val" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--brass);min-width:36px;text-align:right">65%</span>
+          <input type="range" id="s-scout-conf" min="40" max="90" step="5" value="65" oninput="document.getElementById('scout-conf-val').textContent=this.value+'%'" onchange="Settings.saveScoutAlerts()" style="width:90px;accent-color:var(--brass)">
+        </div>
+      </div>
+      <div class="toggle-row sm">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--creamd)">Max Risk Score</div>
+          <div style="font-size:11px;color:var(--creamx)">Skip alerts with risk above this (1 = low, 10 = high)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="scout-risk-val" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--brass);min-width:24px;text-align:right">7</span>
+          <input type="range" id="s-scout-risk" min="1" max="10" step="1" value="7" oninput="document.getElementById('scout-risk-val').textContent=this.value" onchange="Settings.saveScoutAlerts()" style="width:90px;accent-color:var(--brass)">
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="btn primary" onclick="Settings.testScoutAlert()">Send Test Message</button>
+        <span id="s-scout-status" style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700"></span>
+      </div>
+      <div style="background:var(--panel);border-radius:10px;padding:12px 14px;border:1px solid var(--line);margin-top:14px;font-size:12px;color:var(--creamx);line-height:1.6">
+        Requires your Telegram Chat ID set in <b style="color:var(--creamd)">Stock Price Alerts</b> above.
+      </div>
+    </div>
+  </div>
+
   <!-- Account -->
   <div class="settings-card">
     <div class="settings-card-header">🔐 Account</div>
@@ -655,7 +714,8 @@ let userSettings = {
   username:'', telegramChatId:'',
   priceAlertsEnabled:false, alertOnDrop5:true, alertOnPump5:true, alertOnAlphaNeg:true, alertOnDown10:false,
   newsAlertsEnabled:false, alertOnNewArticle:false, alertOnSentimentChange:true, alertOnBreaking:true,
-  newsCheckFrequency:30
+  newsCheckFrequency:30,
+  stockScoutEnabled:false, scoutMinConfidence:65, scoutMaxRisk:7, scoutCustomTickers:''
 };
 
 // ── PROFILE ────────────────────────────────────────────────────────────────
@@ -896,6 +956,37 @@ const Settings = {
     if(ns) ns.checked=userSettings.alertOnSentimentChange;
     if(nb) nb.checked=userSettings.alertOnBreaking;
     if(nf) nf.value=userSettings.newsCheckFrequency;
+    const se2=document.getElementById('s-scout-enabled');
+    const sc=document.getElementById('s-scout-conf');
+    const sr=document.getElementById('s-scout-risk');
+    if(se2) se2.checked=userSettings.stockScoutEnabled;
+    if(sc){sc.value=userSettings.scoutMinConfidence;const cv=document.getElementById('scout-conf-val');if(cv)cv.textContent=userSettings.scoutMinConfidence+'%';}
+    if(sr){sr.value=userSettings.scoutMaxRisk;const rv=document.getElementById('scout-risk-val');if(rv)rv.textContent=userSettings.scoutMaxRisk;}
+    const st2=document.getElementById('s-scout-tickers');
+    if(st2&&document.activeElement!==st2) st2.value=userSettings.scoutCustomTickers;
+  },
+  async saveScoutAlerts(){
+    userSettings.stockScoutEnabled=document.getElementById('s-scout-enabled').checked;
+    userSettings.scoutMinConfidence=parseInt(document.getElementById('s-scout-conf').value)||65;
+    userSettings.scoutMaxRisk=parseInt(document.getElementById('s-scout-risk').value)||7;
+    userSettings.scoutCustomTickers=(document.getElementById('s-scout-tickers').value||'').toUpperCase().replace(/[^A-Z0-9,.\s]/g,'').trim();
+    if(currentUser){
+      db.collection('users').doc(currentUser.uid).set({
+        stockScoutEnabled:userSettings.stockScoutEnabled,
+        scoutMinConfidence:userSettings.scoutMinConfidence,
+        scoutMaxRisk:userSettings.scoutMaxRisk,
+        scoutCustomTickers:userSettings.scoutCustomTickers
+      },{merge:true}).catch(()=>{});
+    }
+  },
+  async testScoutAlert(){
+    const chatId=userSettings.telegramChatId;
+    const st=document.getElementById('s-scout-status');
+    if(!chatId){st.textContent='✗ Enter your chat ID in Price Alerts first';st.style.color='var(--red)';setTimeout(()=>{st.textContent='';st.style.color='';},3000);return;}
+    const ok=await sendTelegram(chatId,'🔍 <b>Edge Tracker Scout</b> is linked!\n\nYou\'ll receive alerts when high-confidence short-term setups are detected. Each alert includes entry, stop loss, take profit, confidence score, and risk score.');
+    st.textContent=ok?'✓ Message sent':'✗ Failed — check your chat ID';
+    st.style.color=ok?'var(--jade)':'var(--red)';
+    setTimeout(()=>{st.textContent='';st.style.color='';},3500);
   }
 };
 
@@ -1035,6 +1126,10 @@ async function loadFromFirestore(){
     userSettings.alertOnSentimentChange=data.alertOnSentimentChange??true;
     userSettings.alertOnBreaking=data.alertOnBreaking??true;
     userSettings.newsCheckFrequency=data.newsCheckFrequency??30;
+    userSettings.stockScoutEnabled=data.stockScoutEnabled??false;
+    userSettings.scoutMinConfidence=data.scoutMinConfidence??65;
+    userSettings.scoutMaxRisk=data.scoutMaxRisk??7;
+    userSettings.scoutCustomTickers=data.scoutCustomTickers||'';
     Object.assign(alertCooldowns,data.alertCooldowns||{});
   }catch(e){ trades=[]; }
   userProfile.username=userSettings.username||(currentUser.email||'').split('@')[0];
@@ -1607,6 +1702,289 @@ function updateMarketTimer(){
     sub.style.color='var(--creamx)';
   }
 }
+
+// ── SCOUT PICKS ───────────────────────────────────────────────────────────
+const ScoutPicks = {
+  _BASE_UNIVERSE: [
+    // Mega cap
+    'AAPL','MSFT','NVDA','META','GOOGL','AMZN','TSLA','AVGO','ORCL',
+    // Semiconductors — where runs like MU happen
+    'AMD','INTC','QCOM','TXN','MU','AMAT','LRCX','KLAC','MRVL','ON','SMCI','ARM','WOLF','AMBA','ENTG',
+    // Software / Cloud
+    'CRM','ADBE','NOW','SNOW','PLTR','PANW','CRWD','ZS','NET','DDOG','MDB','GTLB','CFLT','ESTC',
+    // AI
+    'AI','BBAI','SOUN','RXRX',
+    // Fintech / Crypto
+    'V','MA','PYPL','SQ','COIN','HOOD','SOFI','AFRM','NU','MSTR',
+    // Consumer Tech
+    'UBER','LYFT','ABNB','DASH','SHOP','RBLX','SPOT','SNAP',
+    // Finance
+    'JPM','BAC','GS','MS','WFC','C','BLK',
+    // Healthcare / Biotech
+    'LLY','ABBV','UNH','MRK','PFE','MRNA','GILD','REGN','BIIB','EXAS','RXRX',
+    // Energy
+    'XOM','CVX','OXY','COP','SLB','HAL','DVN',
+    // Consumer / Retail
+    'WMT','COST','NKE','LULU','CMG','MCD','SBUX','DPZ','TGT',
+    // Industrial / Defense
+    'LMT','RTX','BA','CAT','DE','HON',
+    // EV / Clean Energy
+    'RIVN','LCID','ENPH','FSLR','CHPT',
+    // Media / Streaming
+    'DIS','NFLX','PARA',
+    // Growth misc
+    'IONQ','ACHR','JOBY','LUNR','RKLB',
+    // ETFs for context
+    'SPY','QQQ','SMH','SOXL',
+  ],
+
+  _getUniverse(){
+    const custom=(userSettings.scoutCustomTickers||'')
+      .split(/[,\s]+/).map(t=>t.trim().toUpperCase()).filter(t=>t.length>=1&&t.length<=6);
+    return [...new Set([...this._BASE_UNIVERSE, ...custom])];
+  },
+
+  async load(){
+    try{
+      const doc=await db.collection('stockScouts').doc('latest').get();
+      if(!doc.exists) return;
+      const {picks,generatedAt,scannedCount}=doc.data();
+      this._render(picks,generatedAt,scannedCount);
+    }catch(_){}
+  },
+
+  async scan(){
+    const el=document.getElementById('scout-container');
+    const universe=this._getUniverse();
+    el.innerHTML=`<div class="news-spinner"><div class="spinner"></div>Scanning ${universe.length} stocks for pre-run setups… (~20s)</div>`;
+    try{
+      // Fetch quotes in batches of 8 with 800ms gap to respect rate limits
+      const quotes={};
+      for(let i=0;i<universe.length;i+=8){
+        const batch=universe.slice(i,i+8);
+        const res=await Promise.all(batch.map(tk=>
+          fetch(`https://finnhub.io/api/v1/quote?symbol=${tk}&token=${FINNHUB_KEY}`)
+            .then(r=>r.json()).then(d=>({tk,d})).catch(()=>null)
+        ));
+        res.forEach(r=>{if(r&&r.d&&r.d.c>0)quotes[r.tk]={price:r.d.c,changePct:r.d.dp,high:r.d.h,low:r.d.l,prevClose:r.d.pc};});
+        const done=Math.min(i+8,universe.length);
+        el.innerHTML=`<div class="news-spinner"><div class="spinner"></div>Fetching quotes… ${done}/${universe.length}</div>`;
+        if(i+8<universe.length)await new Promise(r=>setTimeout(r,850));
+      }
+
+      // Take all stocks with a valid quote (don't pre-filter heavily — let scoring decide)
+      const candidates=universe.filter(tk=>quotes[tk]&&quotes[tk].price>2);
+
+      // Fetch candles for ALL candidates (this is the deep scan)
+      const picks=[];
+      for(let i=0;i<candidates.length;i++){
+        const ticker=candidates[i];
+        el.innerHTML=`<div class="news-spinner"><div class="spinner"></div>Analysing ${ticker} (${i+1}/${candidates.length})…</div>`;
+        await new Promise(r=>setTimeout(r,380));
+        const candles=await this._fetchCandles(ticker);
+        if(!candles) continue;
+        const result=this._score(candles,quotes[ticker],ticker);
+        if(result&&result.confidence>=35) picks.push(result);
+      }
+
+      picks.sort((a,b)=>b.score-a.score);
+      const topPicks=picks.slice(0,8);
+      const scoutData={generatedAt:Date.now(),picks:topPicks,scannedCount:candidates.length};
+      if(currentUser) await db.collection('stockScouts').doc('latest').set(scoutData).catch(()=>{});
+      this._render(topPicks,scoutData.generatedAt,candidates.length);
+    }catch(e){
+      el.innerHTML='<div class="empty">Scan failed. Check your connection and try again.</div>';
+    }
+  },
+
+  async _fetchCandles(ticker){
+    const to=Math.floor(Date.now()/1000);
+    const from=to-90*86400; // 90 days for better 52wk + OBV context
+    try{
+      const r=await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${FINNHUB_KEY}`);
+      const d=await r.json();
+      if(d&&d.s==='ok'&&d.c&&d.c.length>=20) return d;
+    }catch(_){}
+    return null;
+  },
+
+  _calcRSI(closes,period=14){
+    if(closes.length<period+1) return 50;
+    let g=0,l=0;
+    for(let i=closes.length-period;i<closes.length;i++){
+      const d=closes[i]-closes[i-1];
+      if(d>0)g+=d; else l+=Math.abs(d);
+    }
+    const ag=g/period,al=l/period;
+    if(al===0) return 100;
+    return +(100-100/(1+ag/al)).toFixed(1);
+  },
+
+  _calcATR(highs,lows,closes,period=14){
+    const n=closes.length;
+    if(n<period+1) return highs[n-1]-lows[n-1];
+    const trs=[];
+    for(let i=n-period;i<n;i++)
+      trs.push(Math.max(highs[i]-lows[i],Math.abs(highs[i]-closes[i-1]),Math.abs(lows[i]-closes[i-1])));
+    return trs.reduce((a,b)=>a+b,0)/trs.length;
+  },
+
+  _calcOBVSlope(closes,volumes){
+    // OBV trend over last 20 bars: positive slope = accumulation
+    let obv=0;
+    const obvArr=[];
+    for(let i=0;i<closes.length;i++){
+      if(i>0){if(closes[i]>closes[i-1])obv+=volumes[i];else if(closes[i]<closes[i-1])obv-=volumes[i];}
+      obvArr.push(obv);
+    }
+    const slice=obvArr.slice(-20);
+    const avgVol=volumes.slice(-20).reduce((a,b)=>a+b,0)/20||1;
+    return (slice[slice.length-1]-slice[0])/(20*avgVol); // normalized slope
+  },
+
+  _calcBBWidth(closes,period=20){
+    if(closes.length<period) return 0.05;
+    const s=closes.slice(-period);
+    const mean=s.reduce((a,b)=>a+b,0)/period;
+    const std=Math.sqrt(s.reduce((a,b)=>a+(b-mean)**2,0)/period);
+    return (4*std)/mean;
+  },
+
+  _score(candles,quote,ticker){
+    const{c:closes,h:highs,l:lows,v:volumes}=candles;
+    const n=closes.length;
+    if(n<21) return null;
+
+    const price=quote.price;
+    const rsi=this._calcRSI(closes);
+    const atr=this._calcATR(highs,lows,closes);
+    const sma20=closes.slice(-20).reduce((a,b)=>a+b,0)/20;
+    const sma50=n>=50?closes.slice(-50).reduce((a,b)=>a+b,0)/50:sma20;
+    const sma10=closes.slice(-10).reduce((a,b)=>a+b,0)/10;
+
+    // 52-week high (use all available candle data, up to ~252 bars)
+    const high52=Math.max(...highs);
+    const from52pct=(price-high52)/high52*100; // 0 = at high, -10 = 10% below
+
+    // OBV accumulation
+    const obvSlope=this._calcOBVSlope(closes,volumes);
+
+    // Bollinger squeeze — compare current BB width to 40-bar-ago
+    const bbNow=this._calcBBWidth(closes);
+    const bbOld=n>=40?this._calcBBWidth(closes.slice(-40,-20)):bbNow*1.2;
+    const isSqueeze=bbNow<bbOld*0.75;
+
+    // Volume trend: 20-day avg vs 60-day avg
+    const avgVol20=volumes.slice(-20).reduce((a,b)=>a+b,0)/20;
+    const avgVol60=volumes.slice(-Math.min(60,n)).reduce((a,b)=>a+b,0)/Math.min(60,n);
+    const volTrend=avgVol60>0?avgVol20/avgVol60:1;
+
+    // Multi-timeframe momentum
+    const mom5 =n>=6 ?((closes[n-1]-closes[n-6] )/closes[n-6] )*100:0;
+    const mom20=n>=21?((closes[n-1]-closes[n-21])/closes[n-21])*100:0;
+
+    let score=0;
+    const signals=[];
+
+    // ── 1. 52-week proximity / breakout (0-25 pts) KEY signal ──
+    if(from52pct>=0)             {score+=25;signals.push('Breaking 52-week high 🚀');}
+    else if(from52pct>=-2)       {score+=22;signals.push(`Within 2% of 52-week high`);}
+    else if(from52pct>=-5)       {score+=16;signals.push(`Within 5% of 52-week high`);}
+    else if(from52pct>=-10)      {score+=8; signals.push(`Approaching 52-week high`);}
+
+    // ── 2. OBV accumulation (0-20 pts) — institutional buying ──
+    if(obvSlope>0.2)             {score+=20;signals.push('Strong accumulation (OBV surging)');}
+    else if(obvSlope>0.07)       {score+=13;signals.push('OBV building — quiet accumulation');}
+    else if(obvSlope>0.02)       {score+=6; signals.push('Mild OBV uptick');}
+
+    // ── 3. MA alignment (0-15 pts) ──
+    if(price>sma10&&sma10>sma20&&sma20>sma50){score+=15;signals.push('Full MA stack aligned (bullish)');}
+    else if(price>sma20&&sma10>sma20)        {score+=9; signals.push('Price above rising SMA20');}
+    else if(price>sma50)                      {score+=4; signals.push('Price above 50-day SMA');}
+
+    // ── 4. RSI sweet spot (0-15 pts) ──
+    if(rsi>=48&&rsi<=65)         {score+=15;signals.push(`RSI ${rsi} — healthy momentum zone`);}
+    else if(rsi>=38&&rsi<48)     {score+=9; signals.push(`RSI ${rsi} — recovering, room to run`);}
+    else if(rsi>=65&&rsi<75)     {score+=5; signals.push(`RSI ${rsi} — strong but watch for pullback`);}
+
+    // ── 5. Volume expansion (0-15 pts) ──
+    if(volTrend>=1.4)            {score+=15;signals.push(`Volume up ${((volTrend-1)*100).toFixed(0)}% vs 60-day avg`);}
+    else if(volTrend>=1.2)       {score+=9; signals.push('Volume trending higher');}
+    else if(volTrend>=1.05)      {score+=4; signals.push('Volume slightly above baseline');}
+
+    // ── 6. Volatility squeeze (0-10 pts) — coiling before explosion ──
+    if(isSqueeze)                {score+=10;signals.push('Volatility squeeze — coiling for move');}
+
+    // ── 7. Multi-timeframe momentum (0-10 pts) ──
+    if(mom5>1.5&&mom20>5)        {score+=10;signals.push(`Momentum: +${mom5.toFixed(1)}% (5d) / +${mom20.toFixed(1)}% (20d)`);}
+    else if(mom20>3)             {score+=5; signals.push(`+${mom20.toFixed(1)}% over 20 days`);}
+
+    if(!signals.length) return null;
+
+    const atrPct=atr/price;
+    let risk=5;
+    if(atrPct>0.05)risk=9;else if(atrPct>0.035)risk=7;else if(atrPct>0.025)risk=6;else if(atrPct<0.015)risk=3;
+
+    const confidence=Math.min(Math.round(score),95);
+    const slDist=Math.max(atr*1.5,price*0.03);
+    const entry=+price.toFixed(2);
+    const stopLoss=+(price-slDist).toFixed(2);
+    const takeProfit=+(price+slDist*2.5).toFixed(2);
+
+    return{ticker,score,confidence,risk,entry,stopLoss,takeProfit,signals,rsi,
+           mom20:+mom20.toFixed(2),volTrend:+volTrend.toFixed(2),from52pct:+from52pct.toFixed(1),obvSlope:+obvSlope.toFixed(3)};
+  },
+
+  _render(picks,generatedAt,scannedCount){
+    const el=document.getElementById('scout-container');
+    if(!el) return;
+    if(!picks||!picks.length){
+      el.innerHTML='<div class="empty">No strong pre-run setups found. Try scanning again or lower the confidence threshold in Settings.</div>';
+      return;
+    }
+    const age=Math.floor((Date.now()-generatedAt)/60000);
+    const ageStr=age<60?age+'m ago':Math.floor(age/60)+'h ago';
+    let html=`<div style="font-size:11px;color:var(--creamx);margin-bottom:14px;font-family:'Inter',sans-serif">
+      Last scan: <b>${ageStr}</b> &nbsp;·&nbsp; ${scannedCount||'?'} stocks scanned &nbsp;·&nbsp; ${picks.length} setup${picks.length!==1?'s':''} flagged
+    </div>`;
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px">';
+    for(const p of picks){
+      const riskColor=p.risk<=3?'var(--jade)':p.risk<=6?'var(--amber)':'var(--red)';
+      const confColor=p.confidence>=70?'var(--jade)':p.confidence>=50?'var(--amber)':'var(--red)';
+      const upside=(((p.takeProfit-p.entry)/p.entry)*100).toFixed(1);
+      const downside=(((p.entry-p.stopLoss)/p.entry)*100).toFixed(1);
+      const riskEmoji=p.risk<=3?'🟢':p.risk<=6?'🟡':'🔴';
+      const from52Tag=p.from52pct>=0?`<span class="scout-signal" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);color:var(--jade)">🚀 52wk breakout</span>`
+        :p.from52pct>=-5?`<span class="scout-signal" style="background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.3);color:var(--amber)">Near 52wk high</span>`:'';
+      html+=`<div class="scout-card">
+        <div class="scout-card-header">
+          <span class="scout-ticker">${p.ticker}</span>
+          <span class="scout-risk" style="color:${riskColor}">${riskEmoji} Risk ${p.risk}/10</span>
+        </div>
+        <div class="scout-levels">
+          <div class="scout-level"><span class="scout-level-lbl">Entry</span><span class="scout-level-val">$${p.entry}</span></div>
+          <div class="scout-level"><span class="scout-level-lbl">Stop Loss</span><span class="scout-level-val neg">$${p.stopLoss} <span class="muted">−${downside}%</span></span></div>
+          <div class="scout-level"><span class="scout-level-lbl">Take Profit</span><span class="scout-level-val pos">$${p.takeProfit} <span class="muted">+${upside}%</span></span></div>
+        </div>
+        <div class="scout-conf-bar-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:10px;font-weight:600;color:var(--creamx);letter-spacing:1px;text-transform:uppercase">Setup Strength</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:${confColor}">${p.confidence}%</span>
+          </div>
+          <div style="height:4px;background:var(--line);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${p.confidence}%;background:${confColor};border-radius:4px;transition:width 0.7s ease"></div>
+          </div>
+        </div>
+        <div class="scout-signals">
+          ${from52Tag}
+          ${p.signals.slice(0,2).map(s=>`<span class="scout-signal">${s}</span>`).join('')}
+        </div>
+      </div>`;
+    }
+    html+='</div><p style="font-size:11px;color:var(--creamx);margin-top:14px;font-style:italic">Not financial advice. Always use proper position sizing and risk management.</p>';
+    el.innerHTML=html;
+  }
+};
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 updateMarketTimer();
