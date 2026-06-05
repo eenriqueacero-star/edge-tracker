@@ -249,9 +249,69 @@ tr:hover td{background:rgba(99,102,241,0.06)}
 .scout-level{display:flex;justify-content:space-between;align-items:center}
 .scout-level-lbl{font-family:'Inter',sans-serif;font-size:11px;font-weight:500;color:var(--creamx);text-transform:uppercase;letter-spacing:0.5px}
 .scout-level-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--creamb)}
-.scout-conf-bar-wrap{margin-bottom:12px}
-.scout-signals{display:flex;flex-wrap:wrap;gap:5px}
-.scout-signal{font-family:'Inter',sans-serif;font-size:10px;font-weight:500;padding:3px 9px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:100px;color:var(--creamd)}
+/* ── Scout Tab ─────────────────────────────────────────── */
+.scout-stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+@media(max-width:600px){.scout-stats-bar{grid-template-columns:1fr 1fr}}
+.scout-stat{background:var(--inst);border:1px solid var(--line);border-radius:10px;padding:14px 16px;text-align:center}
+.scout-stat-val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--creamb)}
+.scout-stat-lbl{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--creamx);margin-top:4px}
+.scout-filter-btn{background:transparent;border:none;color:var(--creamx);font-family:'Inter',sans-serif;font-size:11px;font-weight:700;padding:6px 10px;border-radius:7px;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.scout-filter-btn:hover{background:rgba(255,255,255,0.07);color:var(--cream)}
+.scout-filter-btn.active{background:var(--brass);color:#fff}
+.sp-card{background:var(--inst);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s}
+.sp-card:hover{border-color:var(--lineb);box-shadow:0 6px 24px rgba(99,102,241,0.1)}
+.sp-card-header{padding:18px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.sp-ticker{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500;color:var(--creamb);letter-spacing:1px}
+.sp-badges{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sp-badge{font-family:'Inter',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;padding:3px 9px;border-radius:100px}
+.sp-badge.conf-hi{background:rgba(16,185,129,0.15);color:var(--jade);border:1px solid rgba(16,185,129,0.3)}
+.sp-badge.conf-mid{background:rgba(245,158,11,0.12);color:var(--amber);border:1px solid rgba(245,158,11,0.3)}
+.sp-badge.conf-lo{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.25)}
+.sp-badge.risk-lo{background:rgba(16,185,129,0.1);color:var(--jade);border:1px solid rgba(16,185,129,0.25)}
+.sp-badge.risk-mid{background:rgba(245,158,11,0.1);color:var(--amber);border:1px solid rgba(245,158,11,0.25)}
+.sp-badge.risk-hi{background:rgba(239,68,68,0.08);color:var(--red);border:1px solid rgba(239,68,68,0.2)}
+.sp-badge.tf{background:rgba(99,102,241,0.1);color:var(--brassb);border:1px solid rgba(99,102,241,0.2)}
+.sp-badge.status-t1{background:rgba(16,185,129,0.12);color:var(--jade);border:1px solid rgba(16,185,129,0.3)}
+.sp-badge.status-stop{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.25)}
+.sp-collapsed{padding:0 20px 16px}
+.sp-quick-levels{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px}
+.sp-level{display:flex;flex-direction:column;gap:2px}
+.sp-level-lbl{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--creamx)}
+.sp-level-val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;color:var(--creamb)}
+.sp-rr-row{display:flex;gap:16px;font-size:12px;font-weight:600;color:var(--creamd)}
+.sp-expanded{padding:0 20px 20px;border-top:1px solid var(--line);margin-top:4px;display:none}
+.sp-expanded.open{display:block}
+.sp-thesis{font-size:13px;color:var(--cream);line-height:1.7;margin:14px 0}
+.sp-catalysts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.sp-catalyst{font-size:11px;font-weight:600;padding:4px 10px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.18);border-radius:100px;color:var(--brassb)}
+.sp-trade-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px}
+.sp-trade-table td{padding:9px 12px;border-bottom:1px solid var(--line);font-weight:600}
+.sp-trade-table tr:last-child td{border-bottom:none}
+.sp-trade-table td:first-child{color:var(--creamx);font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;width:90px}
+.sp-trade-table td:nth-child(2){font-family:'JetBrains Mono',monospace;color:var(--creamb)}
+.sp-trade-table td:last-child{color:var(--creamd);font-size:12px}
+.sp-price-ladder{position:relative;height:140px;margin:16px 0;background:var(--panel);border-radius:10px;border:1px solid var(--line);overflow:visible}
+.sp-ladder-marker{position:absolute;left:0;right:0;display:flex;align-items:center;gap:8px;padding:0 12px}
+.sp-ladder-line{flex:1;height:1px;background:var(--line)}
+.sp-ladder-lbl{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;white-space:nowrap;flex-shrink:0;min-width:100px;text-align:right}
+.sp-risks{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.sp-risk-badge{font-size:11px;font-weight:600;padding:4px 10px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.18);border-radius:100px;color:var(--red)}
+.sp-card-footer{padding:12px 20px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;background:var(--panel)}
+.sp-action-btn{background:transparent;border:1px solid var(--line);color:var(--creamd);font-family:'Inter',sans-serif;font-size:10px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;padding:6px 12px;border-radius:7px;cursor:pointer;transition:all 0.15s}
+.sp-action-btn:hover{border-color:var(--brassb);color:var(--cream);background:rgba(99,102,241,0.08)}
+.sp-action-btn.danger:hover{border-color:var(--red);color:var(--red);background:rgba(239,68,68,0.08)}
+.scout-empty-state{text-align:center;padding:60px 20px}
+.scout-radar{position:relative;width:80px;height:80px;margin:0 auto 24px}
+.scout-radar-ring{position:absolute;border-radius:50%;border:2px solid var(--brass);top:50%;left:50%;transform:translate(-50%,-50%);animation:radar-pulse 2s ease-out infinite}
+.scout-radar-ring.r1{width:80px;height:80px;animation-delay:0s}
+.scout-radar-ring.r2{width:52px;height:52px;animation-delay:0.5s}
+.scout-radar-ring.r3{width:26px;height:26px;animation-delay:1s}
+.scout-radar-dot{position:absolute;width:8px;height:8px;background:var(--brass);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%)}
+@keyframes radar-pulse{0%{opacity:1;transform:translate(-50%,-50%) scale(0.5)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.2)}}
+.sp-score-bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:4px 0}
+.sp-score-fill{height:100%;background:linear-gradient(90deg,var(--brass),var(--brassb));border-radius:3px;transition:width 0.5s ease}
+.sp-news-item{font-size:12px;color:var(--creamd);padding:6px 0;border-bottom:1px solid var(--line);line-height:1.5}
+.sp-news-item:last-child{border-bottom:none}
 </style>
 </head>
 <body>
@@ -338,9 +398,10 @@ tr:hover td{background:rgba(99,102,241,0.06)}
 <!-- TAB BAR -->
 <div class="tab-bar">
   <button class="tab-btn active" id="tab-dashboard" onclick="Tabs.go('dashboard')"><span class="tab-icon">📊</span>Dashboard</button>
+  <button class="tab-btn" id="tab-scout" onclick="Tabs.go('scout')"><span class="tab-icon">🎯</span>Scout<span class="tab-badge" id="scout-badge"></span></button>
   <button class="tab-btn" id="tab-news" onclick="Tabs.go('news')"><span class="tab-icon">📰</span>News<span class="tab-badge" id="news-badge"></span></button>
   <button class="tab-btn" id="tab-performance" onclick="Tabs.go('performance')"><span class="tab-icon">📈</span>Performance</button>
-  <button class="tab-btn" id="tab-buckets" onclick="Tabs.go('buckets')"><span class="tab-icon">🎯</span>Buckets</button>
+  <button class="tab-btn" id="tab-buckets" onclick="Tabs.go('buckets')"><span class="tab-icon">📦</span>Buckets</button>
   <button class="tab-btn" id="tab-positions" onclick="Tabs.go('positions')"><span class="tab-icon">📋</span>Positions</button>
   <button class="tab-btn" id="tab-settings" onclick="Tabs.go('settings')"><span class="tab-icon">⚙️</span>Settings</button>
   <button class="tab-btn" id="tab-admin" onclick="Tabs.go('admin')" style="display:none"><span class="tab-icon">🛡️</span>Admin</button>
@@ -371,16 +432,54 @@ tr:hover td{background:rgba(99,102,241,0.06)}
   </div>
 </div>
 
-<div class="sec" id="scout-sec">
-  <div class="sec-head">
-    <div class="sec-title">🔍 Scout Picks</div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <div class="sec-note">technical setups · run a scan anytime</div>
-      <button class="btn sm" onclick="ScoutPicks.scan()">↺ Scan Now</button>
+</div>
+
+<!-- SCOUT TAB -->
+<div class="tab-panel" id="panel-scout">
+  <!-- Stats bar -->
+  <div class="scout-stats-bar" id="scout-stats-bar">
+    <div class="scout-stat"><div class="scout-stat-val" id="ss-scanned">—</div><div class="scout-stat-lbl">Stocks scanned</div></div>
+    <div class="scout-stat"><div class="scout-stat-val" id="ss-qualified">—</div><div class="scout-stat-lbl">Qualified for AI</div></div>
+    <div class="scout-stat"><div class="scout-stat-val" id="ss-picks">—</div><div class="scout-stat-lbl">Picks generated</div></div>
+    <div class="scout-stat"><div class="scout-stat-val" id="ss-avgconf">—</div><div class="scout-stat-lbl">Avg confidence</div></div>
+  </div>
+
+  <!-- Header -->
+  <div class="sec-head" style="margin-bottom:18px">
+    <div>
+      <div class="sec-title">🎯 Scout Picks</div>
+      <div class="sec-note">AI-powered 6-month swing trade setups · <span id="scout-last-scan">updated every 6 hours</span></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn primary sm" id="scout-run-btn" onclick="Scout.runScan()">⚡ Run Scan Now</button>
     </div>
   </div>
-  <div id="scout-container"><div class="empty">Scout picks appear here during market hours (Mon–Fri, 9am–4pm ET).</div></div>
-</div>
+
+  <!-- Filters -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:18px">
+    <div style="display:flex;gap:4px;background:var(--inst);border:1px solid var(--line);border-radius:10px;padding:4px">
+      <button class="scout-filter-btn active" id="sf-all" onclick="Scout.setFilter('all')">All</button>
+      <button class="scout-filter-btn" id="sf-highconf" onclick="Scout.setFilter('highconf')">High Conf (8+)</button>
+      <button class="scout-filter-btn" id="sf-lowrisk" onclick="Scout.setFilter('lowrisk')">Low Risk (≤4)</button>
+      <button class="scout-filter-btn" id="sf-bestrr" onclick="Scout.setFilter('bestrr')">Best R/R (3:1+)</button>
+    </div>
+    <select id="scout-sort" onchange="Scout.setSort(this.value)" style="background:var(--inst);border:1px solid var(--line);color:var(--cream);padding:7px 10px;border-radius:8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;cursor:pointer">
+      <option value="confidence">Sort: Confidence</option>
+      <option value="risk">Sort: Lowest Risk</option>
+      <option value="upside">Sort: Upside %</option>
+      <option value="rr">Sort: Risk/Reward</option>
+    </select>
+  </div>
+
+  <div id="scout-picks-container">
+    <div class="scout-empty-state">
+      <div class="scout-radar"><div class="scout-radar-ring r1"></div><div class="scout-radar-ring r2"></div><div class="scout-radar-ring r3"></div><div class="scout-radar-dot"></div></div>
+      <div style="font-size:18px;font-weight:800;color:var(--creamb);margin-bottom:8px">Scanning the market…</div>
+      <div style="font-size:13px;color:var(--creamd);margin-bottom:20px">AI-powered analysis across thousands of stocks</div>
+      <button class="btn primary" onclick="Scout.runScan()">⚡ Run First Scan</button>
+      <div style="font-size:11px;color:var(--creamx);margin-top:12px">Requires Anthropic API key in Settings → Scout API</div>
+    </div>
+  </div>
 </div>
 
 <!-- NEWS TAB -->
@@ -537,49 +636,84 @@ tr:hover td{background:rgba(99,102,241,0.06)}
     </div>
   </div>
 
-  <!-- Stock Scout Alerts -->
+  <!-- Scout Notifications -->
   <div class="settings-card">
-    <div class="settings-card-header">🔍 Stock Scout Alerts</div>
+    <div class="settings-card-header">🎯 Scout Notifications</div>
     <div class="settings-card-body">
-      <p style="font-size:13px;color:var(--creamd);margin-bottom:16px;line-height:1.6">Scans 100+ stocks for pre-run setups — accumulation, 52-week breakouts, volatility squeezes, and volume expansion. The kind of pattern that preceded MU's run. Add your own tickers to the watchlist.</p>
-      <div class="toggle-row" style="border-bottom:none;margin-bottom:18px">
+      <p style="font-size:13px;color:var(--creamd);margin-bottom:18px;line-height:1.6">Get Telegram alerts for AI-analyzed swing trade setups. Scans thousands of stocks every 6 hours and sends only the highest-conviction picks to you.</p>
+      <div class="toggle-row" style="margin-bottom:18px">
         <div>
           <div style="font-weight:700;color:var(--creamb);font-size:14px">Enable Scout Alerts</div>
-          <div style="font-size:12px;color:var(--creamx);margin-top:2px">Receive Telegram alerts for high-confidence pre-run setups — works even when the app is closed</div>
+          <div style="font-size:12px;color:var(--creamx);margin-top:2px">Receive Telegram alerts for high-confidence 6-month setups</div>
         </div>
-        <label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-scout-enabled" onchange="Settings.saveScoutAlerts()"><span class="toggle-pill"></span></label>
+        <label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-scout-enabled" onchange="Settings.saveScoutSettings()"><span class="toggle-pill"></span></label>
       </div>
       <div style="margin-bottom:16px">
         <label class="flabel">Custom Watchlist</label>
-        <input class="finput" id="s-scout-tickers" placeholder="e.g. MSTR, HOOD, PLTR, ARM" onchange="Settings.saveScoutAlerts()" style="max-width:420px">
-        <div class="fhint">Comma-separated tickers to include alongside the default 100+ stock universe</div>
+        <input class="finput" id="s-scout-tickers" placeholder="e.g. MSTR, HOOD, PLTR, ARM" onblur="Settings.saveScoutSettings()" style="max-width:420px">
+        <div class="fhint">Comma-separated tickers added to the scan universe (1,000+ stocks already included)</div>
       </div>
       <div class="toggle-row sm">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--creamd)">Min Confidence Score</div>
-          <div style="font-size:11px;color:var(--creamx)">Only alert when confidence is at or above this level</div>
-        </div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--creamd)">Min Confidence (1–10)</div><div style="font-size:11px;color:var(--creamx)">Only alert at or above this confidence</div></div>
         <div style="display:flex;align-items:center;gap:10px">
-          <span id="scout-conf-val" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--brass);min-width:36px;text-align:right">65%</span>
-          <input type="range" id="s-scout-conf" min="40" max="90" step="5" value="65" oninput="document.getElementById('scout-conf-val').textContent=this.value+'%'" onchange="Settings.saveScoutAlerts()" style="width:90px;accent-color:var(--brass)">
+          <span id="scout-notif-conf-val" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--brass);min-width:20px;text-align:right">8</span>
+          <input type="range" id="s-scout-notif-conf" min="1" max="10" step="1" value="8" oninput="document.getElementById('scout-notif-conf-val').textContent=this.value" onchange="Settings.saveScoutSettings()" style="width:90px;accent-color:var(--brass)">
         </div>
       </div>
       <div class="toggle-row sm">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--creamd)">Max Risk Score</div>
-          <div style="font-size:11px;color:var(--creamx)">Skip alerts with risk above this (1 = low, 10 = high)</div>
-        </div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--creamd)">Max Risk Score (1–10)</div><div style="font-size:11px;color:var(--creamx)">Skip alerts above this risk level</div></div>
         <div style="display:flex;align-items:center;gap:10px">
-          <span id="scout-risk-val" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--brass);min-width:24px;text-align:right">7</span>
-          <input type="range" id="s-scout-risk" min="1" max="10" step="1" value="7" oninput="document.getElementById('scout-risk-val').textContent=this.value" onchange="Settings.saveScoutAlerts()" style="width:90px;accent-color:var(--brass)">
+          <span id="scout-notif-risk-val" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--brass);min-width:20px;text-align:right">6</span>
+          <input type="range" id="s-scout-notif-risk" min="1" max="10" step="1" value="6" oninput="document.getElementById('scout-notif-risk-val').textContent=this.value" onchange="Settings.saveScoutSettings()" style="width:90px;accent-color:var(--brass)">
         </div>
       </div>
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <button class="btn primary" onclick="Settings.testScoutAlert()">Send Test Message</button>
-        <span id="s-scout-status" style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700"></span>
+      <div class="toggle-row sm" style="border-bottom:none">
+        <div><div style="font-size:13px;font-weight:600;color:var(--creamd)">Min Risk/Reward</div><div style="font-size:11px;color:var(--creamx)">Only alert when R/R is at or above this</div></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" id="s-scout-minrr" value="2.0" min="1" max="10" step="0.5" onchange="Settings.saveScoutSettings()" style="width:64px;background:var(--inst);border:1px solid var(--line);color:var(--cream);padding:6px 8px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:13px">
+          <span style="font-size:12px;color:var(--creamx)">:1</span>
+        </div>
       </div>
-      <div style="background:var(--panel);border-radius:10px;padding:12px 14px;border:1px solid var(--line);margin-top:14px;font-size:12px;color:var(--creamx);line-height:1.6">
-        Requires your Telegram Chat ID set in <b style="color:var(--creamd)">Stock Price Alerts</b> above.
+      <div style="margin:16px 0 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div class="toggle-row sm" style="border-bottom:none;margin:0;width:100%">
+          <div><div style="font-size:13px;font-weight:600;color:var(--creamd)">Alert when Target 1 is hit</div></div>
+          <label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-scout-alert-t1" onchange="Settings.saveScoutSettings()"><span class="toggle-pill"></span></label>
+        </div>
+        <div class="toggle-row sm" style="border-bottom:none;margin:0;width:100%">
+          <div><div style="font-size:13px;font-weight:600;color:var(--creamd)">Alert when Stop Loss is hit</div></div>
+          <label class="toggle-wrap"><input type="checkbox" class="toggle-input" id="s-scout-alert-stop" onchange="Settings.saveScoutSettings()"><span class="toggle-pill"></span></label>
+        </div>
+      </div>
+      <div style="margin-top:14px;background:var(--panel);border-radius:8px;padding:10px 14px;border:1px solid var(--line);font-size:12px;color:var(--creamx)">
+        Requires Telegram Chat ID set in <b style="color:var(--creamd)">Stock Price Alerts</b> above.
+      </div>
+    </div>
+  </div>
+
+  <!-- Scout API Configuration -->
+  <div class="settings-card">
+    <div class="settings-card-header">🤖 Scout AI Configuration</div>
+    <div class="settings-card-body">
+      <p style="font-size:13px;color:var(--creamd);margin-bottom:16px;line-height:1.6">The scout uses Claude AI to generate trade theses, entry/exit levels, and risk assessments. Your API key is stored securely in Firestore and only used server-side.</p>
+      <div style="margin-bottom:16px">
+        <label class="flabel">Anthropic API Key</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="password" class="finput" id="s-anthropic-key" placeholder="sk-ant-…" style="max-width:360px;font-family:'JetBrains Mono',monospace;font-size:12px">
+          <button class="btn primary" onclick="Settings.saveAnthropicKey()">Save Key</button>
+          <button class="btn" onclick="Settings.testAnthropicKey()">Test</button>
+        </div>
+        <div class="fhint">Get your key at console.anthropic.com — key is never exposed to the browser after saving</div>
+        <span id="s-anthropic-status" style="font-size:12px;font-weight:700;margin-top:6px;display:block"></span>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;flex:1;min-width:140px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--creamx);margin-bottom:4px">Picks This Month</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--creamb)" id="scout-picks-month">—</div>
+        </div>
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;flex:1;min-width:140px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--creamx);margin-bottom:4px">Est. Cost/Month</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--jade)" id="scout-cost-month">~$0.50</div>
+        </div>
       </div>
     </div>
   </div>
@@ -970,33 +1104,72 @@ const Settings = {
     if(nb) nb.checked=userSettings.alertOnBreaking;
     if(nf) nf.value=userSettings.newsCheckFrequency;
     const se2=document.getElementById('s-scout-enabled');
-    const sc=document.getElementById('s-scout-conf');
-    const sr=document.getElementById('s-scout-risk');
-    if(se2) se2.checked=userSettings.stockScoutEnabled;
-    if(sc){sc.value=userSettings.scoutMinConfidence;const cv=document.getElementById('scout-conf-val');if(cv)cv.textContent=userSettings.scoutMinConfidence+'%';}
-    if(sr){sr.value=userSettings.scoutMaxRisk;const rv=document.getElementById('scout-risk-val');if(rv)rv.textContent=userSettings.scoutMaxRisk;}
+    if(se2) se2.checked=userSettings.scoutAlertsEnabled||false;
     const st2=document.getElementById('s-scout-tickers');
-    if(st2&&document.activeElement!==st2) st2.value=userSettings.scoutCustomTickers;
+    if(st2&&document.activeElement!==st2) st2.value=userSettings.scoutCustomTickers||'';
+    const snc=document.getElementById('s-scout-notif-conf');
+    if(snc){snc.value=userSettings.scoutNotifMinConf||8;const cv=document.getElementById('scout-notif-conf-val');if(cv)cv.textContent=userSettings.scoutNotifMinConf||8;}
+    const snr=document.getElementById('s-scout-notif-risk');
+    if(snr){snr.value=userSettings.scoutNotifMaxRisk||6;const rv=document.getElementById('scout-notif-risk-val');if(rv)rv.textContent=userSettings.scoutNotifMaxRisk||6;}
+    const smrr=document.getElementById('s-scout-minrr');
+    if(smrr) smrr.value=userSettings.scoutMinRR||2.0;
+    const sat1=document.getElementById('s-scout-alert-t1');
+    if(sat1) sat1.checked=userSettings.scoutAlertOnTarget1||false;
+    const sasp=document.getElementById('s-scout-alert-stop');
+    if(sasp) sasp.checked=userSettings.scoutAlertOnStop||false;
+    // Load scout stats
+    db.collection('scoutPicks').where('status','in',['active','target1_hit']).get().then(s=>{ const el=document.getElementById('scout-picks-month'); if(el) el.textContent=s.size; }).catch(()=>{});
   },
   async saveScoutAlerts(){
-    userSettings.stockScoutEnabled=document.getElementById('s-scout-enabled').checked;
-    userSettings.scoutMinConfidence=parseInt(document.getElementById('s-scout-conf').value)||65;
-    userSettings.scoutMaxRisk=parseInt(document.getElementById('s-scout-risk').value)||7;
-    userSettings.scoutCustomTickers=(document.getElementById('s-scout-tickers').value||'').toUpperCase().replace(/[^A-Z0-9,.\s]/g,'').trim();
+    userSettings.stockScoutEnabled=document.getElementById('s-scout-enabled')?.checked||false;
     if(currentUser){
-      db.collection('users').doc(currentUser.uid).set({
-        stockScoutEnabled:userSettings.stockScoutEnabled,
-        scoutMinConfidence:userSettings.scoutMinConfidence,
-        scoutMaxRisk:userSettings.scoutMaxRisk,
-        scoutCustomTickers:userSettings.scoutCustomTickers
-      },{merge:true}).catch(()=>{});
+      db.collection('users').doc(currentUser.uid).set({stockScoutEnabled:userSettings.stockScoutEnabled},{merge:true}).catch(()=>{});
     }
+  },
+  async saveScoutSettings(){
+    const enabled=document.getElementById('s-scout-enabled')?.checked||false;
+    const tickers=(document.getElementById('s-scout-tickers')?.value||'').toUpperCase().replace(/[^A-Z0-9,.\s]/g,'').trim();
+    const notifConf=parseInt(document.getElementById('s-scout-notif-conf')?.value)||8;
+    const notifRisk=parseInt(document.getElementById('s-scout-notif-risk')?.value)||6;
+    const minRR=parseFloat(document.getElementById('s-scout-minrr')?.value)||2.0;
+    const alertT1=document.getElementById('s-scout-alert-t1')?.checked||false;
+    const alertStop=document.getElementById('s-scout-alert-stop')?.checked||false;
+    Object.assign(userSettings,{scoutAlertsEnabled:enabled,scoutCustomTickers:tickers,scoutNotifMinConf:notifConf,scoutNotifMaxRisk:notifRisk,scoutMinRR:minRR,scoutAlertOnTarget1:alertT1,scoutAlertOnStop:alertStop});
+    if(currentUser){
+      db.collection('users').doc(currentUser.uid).set({scoutAlertsEnabled:enabled,scoutCustomTickers:tickers,scoutNotifMinConf:notifConf,scoutNotifMaxRisk:notifRisk,scoutMinRR:minRR,scoutAlertOnTarget1:alertT1,scoutAlertOnStop:alertStop},{merge:true}).catch(()=>{});
+    }
+  },
+  async saveAnthropicKey(){
+    const key=(document.getElementById('s-anthropic-key')?.value||'').trim();
+    const st=document.getElementById('s-anthropic-status');
+    if(!key||!key.startsWith('sk-ant-')){st.textContent='✗ Key must start with sk-ant-';st.style.color='var(--red)';setTimeout(()=>st.textContent='',3000);return;}
+    if(!currentUser){st.textContent='✗ Not signed in';st.style.color='var(--red)';return;}
+    try{
+      await db.collection('config').doc('scout').set({anthropicKey:key,updatedAt:firebase.firestore.Timestamp.now()},{merge:true});
+      document.getElementById('s-anthropic-key').value='';
+      st.textContent='✓ Key saved securely';st.style.color='var(--jade)';
+      setTimeout(()=>st.textContent='',3000);
+    }catch(e){st.textContent='✗ Save failed: '+e.message;st.style.color='var(--red)';}
+  },
+  async testAnthropicKey(){
+    const st=document.getElementById('s-anthropic-status');
+    st.textContent='Testing…';st.style.color='var(--creamx)';
+    try{
+      const fn=firebase.functions().httpsCallable('runScoutNow');
+      await fn({test:true});
+      st.textContent='✓ API key works';st.style.color='var(--jade)';
+    }catch(e){
+      const msg=e.message||'';
+      st.textContent=msg.includes('not deployed')||msg.includes('CORS')?'✗ Functions not deployed yet':'✗ '+msg;
+      st.style.color='var(--red)';
+    }
+    setTimeout(()=>st.textContent='',5000);
   },
   async testScoutAlert(){
     const chatId=userSettings.telegramChatId;
     const st=document.getElementById('s-scout-status');
     if(!chatId){st.textContent='✗ Enter your chat ID in Price Alerts first';st.style.color='var(--red)';setTimeout(()=>{st.textContent='';st.style.color='';},3000);return;}
-    const ok=await sendTelegram(chatId,'🔍 <b>Edge Tracker Scout</b> is linked!\n\nYou\'ll receive alerts when high-confidence short-term setups are detected. Each alert includes entry, stop loss, take profit, confidence score, and risk score.');
+    const ok=await sendTelegram(chatId,'🎯 <b>Edge Tracker Scout</b> is linked!\n\nYou\'ll receive alerts when high-confidence 6-month swing trade setups are found — with entry, stop loss, and take profit levels.');
     st.textContent=ok?'✓ Message sent':'✗ Failed — check your chat ID';
     st.style.color=ok?'var(--jade)':'var(--red)';
     setTimeout(()=>{st.textContent='';st.style.color='';},3500);
@@ -1143,6 +1316,12 @@ async function loadFromFirestore(){
     userSettings.scoutMinConfidence=data.scoutMinConfidence??65;
     userSettings.scoutMaxRisk=data.scoutMaxRisk??7;
     userSettings.scoutCustomTickers=data.scoutCustomTickers||'';
+    userSettings.scoutAlertsEnabled=data.scoutAlertsEnabled??false;
+    userSettings.scoutNotifMinConf=data.scoutNotifMinConf??8;
+    userSettings.scoutNotifMaxRisk=data.scoutNotifMaxRisk??6;
+    userSettings.scoutMinRR=data.scoutMinRR??2.0;
+    userSettings.scoutAlertOnTarget1=data.scoutAlertOnTarget1??false;
+    userSettings.scoutAlertOnStop=data.scoutAlertOnStop??false;
     Object.assign(alertCooldowns,data.alertCooldowns||{});
   }catch(e){ trades=[]; }
   userProfile.username=userSettings.username||(currentUser.email||'').split('@')[0];
@@ -1153,7 +1332,7 @@ async function loadFromFirestore(){
   startRefresh();
   News.refresh();
   News.scheduleRefresh();
-  ScoutPicks.load();
+  Scout.load();
   showGreeting();
 }
 
@@ -1216,6 +1395,7 @@ async function refreshAllPrices(){
   if(spyResult) spyLive = spyResult;
   const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   document.getElementById('live-status').textContent = `updated ${now}`;
+  Scout.checkPerformance(liveCache);
   renderLive();
 }
 
@@ -1717,9 +1897,9 @@ function updateMarketTimer(){
   }
 }
 
-// ── SCOUT PICKS ───────────────────────────────────────────────────────────
-const ScoutPicks = {
-  _BASE_UNIVERSE: [
+// ── SCOUT ─────────────────────────────────────────────────────────────────
+const Scout = {
+  _UNUSED_BASE: [
     // Mega cap
     'AAPL','MSFT','NVDA','META','GOOGL','AMZN','TSLA','AVGO','ORCL',
     // Semiconductors — where runs like MU happen
@@ -1997,6 +2177,236 @@ const ScoutPicks = {
     }
     html+='</div><p style="font-size:11px;color:var(--creamx);margin-top:14px;font-style:italic">Not financial advice. Always use proper position sizing and risk management.</p>';
     el.innerHTML=html;
+  },
+
+  // ── new AI Scout object merged below ──
+  _picks: [], _dismissed: new Set(), _filter: 'all', _sort: 'confidence', _expanded: new Set(), _scanning: false,
+
+  async load() {
+    try {
+      const snap = await db.collection('scoutPicks').where('status','in',['active','target1_hit','target2_hit']).orderBy('scannedAt','desc').limit(50).get();
+      this._picks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const dismissedDoc = await db.collection('users').doc(currentUser.uid).get();
+      const dismissed = dismissedDoc.exists ? (dismissedDoc.data().dismissedPicks || []) : [];
+      this._dismissed = new Set(dismissed);
+    } catch(_) { this._picks = []; }
+    try {
+      const meta = await db.collection('scoutMeta').doc('latest').get();
+      if (meta.exists) {
+        const d = meta.data();
+        document.getElementById('ss-scanned').textContent = (d.scannedCount||0).toLocaleString();
+        document.getElementById('ss-qualified').textContent = (d.qualifiedCount||0).toLocaleString();
+        document.getElementById('ss-picks').textContent = d.picksCount||0;
+        document.getElementById('ss-avgconf').textContent = d.avgConfidence ? d.avgConfidence+'/10' : '—';
+        const ago = d.scannedAt ? Math.round((Date.now()-d.scannedAt.toMillis())/3600000) : null;
+        const el = document.getElementById('scout-last-scan');
+        if (el && ago !== null) el.textContent = ago < 1 ? 'updated <1h ago' : `updated ${ago}h ago`;
+      }
+    } catch(_) {}
+    // Update badge
+    const badge = document.getElementById('scout-badge');
+    if (badge) { const n=this._picks.filter(p=>!this._dismissed.has(p.id)).length; badge.textContent=n>0?n:''; badge.style.display=n>0?'':'none'; }
+    this._renderList();
+  },
+
+  async runScan() {
+    if (this._scanning) return;
+    this._scanning = true;
+    const btn = document.getElementById('scout-run-btn');
+    const container = document.getElementById('scout-picks-container');
+    if (btn) { btn.disabled=true; btn.textContent='⏳ Scanning…'; }
+    container.innerHTML = `<div class="scout-empty-state"><div class="scout-radar"><div class="scout-radar-ring r1"></div><div class="scout-radar-ring r2"></div><div class="scout-radar-ring r3"></div><div class="scout-radar-dot"></div></div><div style="font-size:16px;font-weight:800;color:var(--creamb);margin-bottom:8px">Scanning thousands of stocks…</div><div style="font-size:13px;color:var(--creamd)">Fetching data, scoring candidates, running AI analysis.<br>This takes 10–20 minutes for a full scan.</div></div>`;
+    try {
+      const fn = firebase.functions();
+      const call = fn.httpsCallable('runScoutNow');
+      const result = await call({});
+      const r = result.data;
+      if (btn) { btn.disabled=false; btn.textContent='⚡ Run Scan Now'; }
+      this._scanning = false;
+      await this.load();
+      if (!this._picks.length) container.innerHTML = `<div class="scout-empty-state"><div style="font-size:18px;font-weight:800;color:var(--amber);margin-bottom:8px">⚠️ Scan complete — no picks yet</div><div style="font-size:13px;color:var(--creamd);max-width:400px;margin:0 auto">Scanned ${r?.scannedCount||'—'} stocks. Either no stocks passed the 12/28 threshold, or the Anthropic API key isn't configured in Settings → Scout AI.</div></div>`;
+    } catch(e) {
+      if (btn) { btn.disabled=false; btn.textContent='⚡ Run Scan Now'; }
+      this._scanning = false;
+      const errMsg = e.message || 'Unknown error';
+      const isAuth = errMsg.includes('Cloud Functions') || errMsg.includes('deploy') || errMsg.includes('CORS') || errMsg.includes('auth');
+      container.innerHTML = `<div class="scout-empty-state"><div style="font-size:18px;font-weight:800;color:var(--red);margin-bottom:8px">Scan error</div><div style="font-size:13px;color:var(--creamd);max-width:460px;margin:0 auto">${isAuth ? 'Cloud Functions not deployed yet. Run <code style="background:var(--panel);padding:2px 6px;border-radius:4px">firebase deploy --only functions</code> first.' : esc(errMsg)}</div></div>`;
+    }
+  },
+
+  setFilter(f) {
+    this._filter = f;
+    document.querySelectorAll('.scout-filter-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('sf-'+f);
+    if (btn) btn.classList.add('active');
+    this._renderList();
+  },
+
+  setSort(s) { this._sort = s; this._renderList(); },
+
+  _getFiltered() {
+    let picks = this._picks.filter(p => !this._dismissed.has(p.id));
+    if (this._filter === 'highconf') picks = picks.filter(p => (p.confidence||0) >= 8);
+    else if (this._filter === 'lowrisk') picks = picks.filter(p => (p.riskScore||5) <= 4);
+    else if (this._filter === 'bestrr') picks = picks.filter(p => (p.riskReward||0) >= 3);
+    picks.sort((a,b) => {
+      if (this._sort === 'confidence') return (b.confidence||0)-(a.confidence||0);
+      if (this._sort === 'risk') return (a.riskScore||5)-(b.riskScore||5);
+      if (this._sort === 'upside') return (b.potentialUpside||0)-(a.potentialUpside||0);
+      if (this._sort === 'rr') return (b.riskReward||0)-(a.riskReward||0);
+      return 0;
+    });
+    return picks;
+  },
+
+  _renderList() {
+    const container = document.getElementById('scout-picks-container');
+    if (!container) return;
+    const picks = this._getFiltered();
+    if (!picks.length) {
+      container.innerHTML = `<div class="scout-empty-state"><div class="scout-radar"><div class="scout-radar-ring r1"></div><div class="scout-radar-ring r2"></div><div class="scout-radar-ring r3"></div><div class="scout-radar-dot"></div></div><div style="font-size:18px;font-weight:800;color:var(--creamb);margin-bottom:8px">${this._picks.length ? 'No picks match this filter' : 'Scanning the market…'}</div><div style="font-size:13px;color:var(--creamd);margin-bottom:20px">${this._picks.length ? 'Try a different filter or run a new scan.' : 'AI-powered analysis across thousands of stocks'}</div><button class="btn primary" onclick="Scout.runScan()">⚡ Run Scan Now</button>${!this._picks.length?'<div style="font-size:11px;color:var(--creamx);margin-top:12px">Requires Anthropic API key in Settings → Scout AI</div>':''}</div>`;
+      return;
+    }
+    container.innerHTML = picks.map(p => this._renderCard(p)).join('');
+  },
+
+  _renderCard(p) {
+    const id = p.id;
+    const conf = p.confidence || 0;
+    const risk = p.riskScore || 5;
+    const confClass = conf >= 8 ? 'conf-hi' : conf >= 6 ? 'conf-mid' : 'conf-lo';
+    const riskClass = risk <= 3 ? 'risk-lo' : risk <= 6 ? 'risk-mid' : 'risk-hi';
+    const t1 = p.takeProfit?.target1, t2 = p.takeProfit?.target2, t3 = p.takeProfit?.target3;
+    const entry = p.entry?.price || p.price;
+    const sl = p.stopLoss?.price || 0;
+    const statusBadge = p.status === 'target1_hit' ? '<span class="sp-badge status-t1">T1 Hit</span>' : p.status === 'stopped_out' ? '<span class="sp-badge status-stop">Stopped</span>' : '';
+    const expanded = this._expanded.has(id);
+    const scannedAgo = p.scannedAt ? Math.round((Date.now() - (p.scannedAt.toMillis ? p.scannedAt.toMillis() : p.scannedAt)) / 3600000) : null;
+    const scoreBar = `<div style="margin-bottom:4px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--creamx);font-weight:700;margin-bottom:2px"><span>SCORE</span><span>${p.score||0}/28</span></div><div class="sp-score-bar"><div class="sp-score-fill" style="width:${Math.round((p.score||0)/28*100)}%"></div></div></div>`;
+
+    // price ladder
+    const allPrices = [sl, entry, t1?.price, t2?.price, t3?.price].filter(Boolean);
+    const minP = Math.min(...allPrices) * 0.97, maxP = Math.max(...allPrices) * 1.03;
+    const pctPos = v => Math.round((1 - (v - minP)/(maxP - minP)) * 80 + 10);
+    const ladderMarker = (v, lbl, color) => `<div class="sp-ladder-marker" style="top:${pctPos(v)}%;"><div class="sp-ladder-lbl" style="color:${color}">${lbl} $${(+v).toFixed(2)}</div><div class="sp-ladder-line" style="background:${color};opacity:0.5"></div></div>`;
+
+    return `<div class="sp-card" id="spc-${esc(id)}">
+  <div class="sp-card-header" onclick="Scout.toggleExpand('${esc(id)}')">
+    <div>
+      <div class="sp-ticker">${esc(p.ticker)}</div>
+      <div style="font-size:12px;color:var(--creamd);margin-top:2px">$${(+p.price).toFixed(2)} · ${scannedAgo!==null?(scannedAgo<1?'<1h ago':scannedAgo+'h ago'):'—'}</div>
+    </div>
+    <div class="sp-badges">
+      <span class="sp-badge ${confClass}">Conf ${conf}/10</span>
+      <span class="sp-badge ${riskClass}">Risk ${risk}/10</span>
+      <span class="sp-badge tf">${p.timeframe||'3-6 months'}</span>
+      ${statusBadge}
+      <span style="font-size:18px;color:var(--creamx);transition:transform 0.2s" id="sp-arrow-${esc(id)}">${expanded?'▲':'▼'}</span>
+    </div>
+  </div>
+  <div class="sp-collapsed">
+    <div style="font-size:13px;color:var(--creamd);margin-bottom:10px;line-height:1.5">${esc((p.thesis||'').slice(0,120))}${(p.thesis||'').length>120?'…':''}</div>
+    <div class="sp-quick-levels">
+      <div class="sp-level"><div class="sp-level-lbl">Entry</div><div class="sp-level-val">$${(+entry).toFixed(2)}</div></div>
+      <div class="sp-level"><div class="sp-level-lbl">Stop</div><div class="sp-level-val" style="color:var(--red)">$${(+sl).toFixed(2)}</div></div>
+      <div class="sp-level"><div class="sp-level-lbl">Target 1</div><div class="sp-level-val" style="color:var(--jade)">$${t1?.price?((+t1.price).toFixed(2)):'—'}</div></div>
+      <div class="sp-level"><div class="sp-level-lbl">R/R</div><div class="sp-level-val">${p.riskReward||'—'}:1</div></div>
+    </div>
+    <div class="sp-rr-row">
+      <span style="color:var(--jade)">↑ ${p.potentialUpside||'—'}% upside</span>
+      <span style="color:var(--red)">↓ ${p.maxDownside||'—'}% downside</span>
+    </div>
+  </div>
+  <div class="sp-expanded${expanded?' open':''}" id="spe-${esc(id)}">
+    <p class="sp-thesis">${esc(p.thesis||'—')}</p>
+    <div class="sp-catalysts">${(p.catalysts||[]).map(c=>`<span class="sp-catalyst">${esc(c)}</span>`).join('')}</div>
+    <table class="sp-trade-table">
+      <tr><td>Entry</td><td>$${(+entry).toFixed(2)}</td><td>${esc(p.entry?.strategy||'')}</td></tr>
+      <tr><td>Stop Loss</td><td style="color:var(--red)">$${(+sl).toFixed(2)}</td><td>${esc(p.stopLoss?.reasoning||'')} (${p.maxDownside}%)</td></tr>
+      <tr><td>Target 1</td><td style="color:var(--jade)">$${t1?.price?(+t1.price).toFixed(2):'—'}</td><td>${esc(t1?.reasoning||'')} (+${t1?.pct||0}%)</td></tr>
+      <tr><td>Target 2</td><td style="color:var(--jade)">$${t2?.price?(+t2.price).toFixed(2):'—'}</td><td>${esc(t2?.reasoning||'')} (+${t2?.pct||0}%)</td></tr>
+      <tr><td>Target 3</td><td style="color:var(--jade)">$${t3?.price?(+t3.price).toFixed(2):'—'}</td><td>${esc(t3?.reasoning||'')} (+${t3?.pct||0}%)</td></tr>
+    </table>
+    <div class="sp-price-ladder">
+      ${t3?.price ? ladderMarker(t3.price, 'T3', 'var(--jade)') : ''}
+      ${t2?.price ? ladderMarker(t2.price, 'T2', 'var(--jade)') : ''}
+      ${t1?.price ? ladderMarker(t1.price, 'T1', 'var(--jade)') : ''}
+      ${ladderMarker(entry, 'Entry', 'var(--brassb)')}
+      ${ladderMarker(sl, 'Stop', 'var(--red)')}
+    </div>
+    <div style="font-size:12px;color:var(--creamd);margin:10px 0 14px;line-height:1.5"><b style="color:var(--creamx)">News:</b> ${esc(p.newsSupport||'—')}</div>
+    ${scoreBar}
+    <div class="sp-risks">${(p.keyRisks||[]).map(r=>`<span class="sp-risk-badge">⚠ ${esc(r)}</span>`).join('')}</div>
+    ${p.headlines?.length ? `<div style="margin-top:12px"><div style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--creamx);margin-bottom:6px">Recent Headlines</div>${p.headlines.slice(0,3).map(h=>`<div class="sp-news-item">${esc(h)}</div>`).join('')}</div>` : ''}
+  </div>
+  <div class="sp-card-footer">
+    <button class="sp-action-btn" onclick="Scout.takeTrade('${esc(id)}')">📋 Take This Trade</button>
+    <button class="sp-action-btn" onclick="Scout.share('${esc(id)}')">📤 Share</button>
+    <button class="sp-action-btn danger" onclick="Scout.dismiss('${esc(id)}')">✕ Dismiss</button>
+    <button class="sp-action-btn" onclick="Scout.flagPick('${esc(id)}')">🚩 Flag</button>
+  </div>
+</div>`;
+  },
+
+  toggleExpand(id) {
+    const panel = document.getElementById('spe-'+id);
+    const arrow = document.getElementById('sp-arrow-'+id);
+    if (!panel) return;
+    if (this._expanded.has(id)) { this._expanded.delete(id); panel.classList.remove('open'); if(arrow) arrow.textContent='▼'; }
+    else { this._expanded.add(id); panel.classList.add('open'); if(arrow) arrow.textContent='▲'; }
+  },
+
+  async dismiss(id) {
+    this._dismissed.add(id);
+    const card = document.getElementById('spc-'+id);
+    if (card) { card.style.opacity='0'; card.style.transform='translateX(20px)'; card.style.transition='opacity 0.3s,transform 0.3s'; setTimeout(()=>card.remove(),300); }
+    if (currentUser) {
+      db.collection('users').doc(currentUser.uid).set({ dismissedPicks: [...this._dismissed] }, {merge:true}).catch(()=>{});
+    }
+  },
+
+  takeTrade(id) {
+    const pick = this._picks.find(p => p.id === id);
+    if (!pick) return;
+    document.getElementById('f-tk').value = pick.ticker;
+    document.getElementById('f-px').value = (pick.entry?.price || pick.price).toFixed(2);
+    document.getElementById('f-dt').value = new Date().toISOString().slice(0,10);
+    document.getElementById('f-th').value = pick.thesis || '';
+    document.getElementById('f-dp').value = (pick.keyRisks||[]).join('. ') || '';
+    App.openAdd();
+  },
+
+  share(id) {
+    const pick = this._picks.find(p => p.id === id);
+    if (!pick) return;
+    const t1 = pick.takeProfit?.target1, t2 = pick.takeProfit?.target2;
+    const text = `🎯 ${pick.ticker} Scout Pick — Edge Tracker\n\n${pick.thesis||''}\n\nEntry: $${(+(pick.entry?.price||pick.price)).toFixed(2)}\nStop: $${(+(pick.stopLoss?.price||0)).toFixed(2)} (${pick.maxDownside}%)\nT1: $${t1?.price?(+t1.price).toFixed(2):'—'} (+${t1?.pct||0}%)\nT2: $${t2?.price?(+t2.price).toFixed(2):'—'} (+${t2?.pct||0}%)\nR/R: ${pick.riskReward}:1 | Conf: ${pick.confidence}/10\n\n${pick.verdict||''}\n\nNot financial advice.`;
+    navigator.clipboard.writeText(text).then(()=>{ const btn=document.querySelector(`#spc-${CSS.escape(id)} .sp-action-btn:nth-child(2)`); if(btn){const orig=btn.textContent;btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent=orig,2000);} }).catch(()=>alert(text));
+  },
+
+  async flagPick(id) {
+    if (!currentUser) return;
+    await db.collection('scoutFlags').add({ pickId:id, userId:currentUser.uid, flaggedAt: firebase.firestore.Timestamp.now() }).catch(()=>{});
+    alert('Flagged. Thanks for the feedback — we\'ll use this to improve the scanner.');
+    this.dismiss(id);
+  },
+
+  checkPerformance(liveData) {
+    const picks = this._picks.filter(p => p.status === 'active');
+    picks.forEach(pick => {
+      const q = liveData[pick.ticker];
+      if (!q) return;
+      const price = q.price;
+      const sl = pick.stopLoss?.price;
+      const t1 = pick.takeProfit?.target1?.price;
+      if (sl && price <= sl && pick.status === 'active') {
+        pick.status = 'stopped_out';
+        db.collection('scoutPicks').doc(pick.id).update({ status:'stopped_out', currentPrice:price }).catch(()=>{});
+      } else if (t1 && price >= t1 && pick.status === 'active') {
+        pick.status = 'target1_hit';
+        db.collection('scoutPicks').doc(pick.id).update({ status:'target1_hit', currentPrice:price }).catch(()=>{});
+      }
+    });
   }
 };
 

@@ -1,6 +1,7 @@
 const { onRequest, onCall } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
+const Anthropic = require('@anthropic-ai/sdk');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -644,5 +645,268 @@ exports.checkStockScout = onSchedule({
     }
     msg += `<i>Not financial advice. Always manage your risk.</i>`;
     await sendTelegram(telegramChatId, msg);
+  }
+});
+
+// ── AI Scout System ───────────────────────────────────────────────────────
+
+async function getAnthropicKey() {
+  try {
+    const doc = await db.collection('config').doc('scout').get();
+    return doc.exists ? doc.data().anthropicKey : null;
+  } catch(_) { return null; }
+}
+
+async function fetchMetrics(ticker) {
+  try {
+    const r = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`);
+    const d = await r.json();
+    return d?.metric || null;
+  } catch(_) { return null; }
+}
+
+async function fetchCandles90(ticker) {
+  try {
+    const to = Math.floor(Date.now() / 1000);
+    const from = to - 90 * 86400;
+    const r = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${FINNHUB_KEY}`);
+    const d = await r.json();
+    return (d?.s === 'ok' && d.c?.length >= 50) ? d : null;
+  } catch(_) { return null; }
+}
+
+async function fetchNews30(ticker) {
+  try {
+    const to = new Date().toISOString().slice(0, 10);
+    const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const r = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${from}&to=${to}&token=${FINNHUB_KEY}`);
+    const d = await r.json();
+    return Array.isArray(d) ? d.slice(0, 10) : [];
+  } catch(_) { return []; }
+}
+
+function scoreNewsArticles(articles) {
+  const posWords = ['earnings beat','raised guidance','new contract','partnership','fda approval','analyst upgrade','buyback','dividend increase','record revenue','beat estimates','outperform','record high'];
+  const negWords = ['earnings miss','lowered guidance','lawsuit','sec investigation','ceo resign','layoffs','debt default','downgrade','recall','below estimates','bankruptcy','fraud'];
+  const catalystWords = ['merger','acquisition','spin-off','buyout','takeover'];
+  const text = articles.map(a => (a.headline + ' ' + (a.summary||'')).toLowerCase()).join(' ');
+  let score = 0;
+  posWords.forEach(w => { if (text.includes(w)) score++; });
+  negWords.forEach(w => { if (text.includes(w)) score--; });
+  const hasCatalyst = catalystWords.some(c => text.includes(c));
+  return { score, hasCatalyst, headlines: articles.map(a => a.headline||'').filter(Boolean).slice(0, 5) };
+}
+
+function scoreTechnicalsAI(candles) {
+  if (!candles?.c || candles.c.length < 50) return { score: 0, data: {} };
+  const closes = candles.c, highs = candles.h, lows = candles.l, volumes = candles.v;
+  const n = closes.length;
+  let score = 0;
+  const price = closes[n-1];
+  const sma50 = closes.slice(-50).reduce((a,b)=>a+b,0)/50;
+  const sma200 = n >= 200 ? closes.slice(-200).reduce((a,b)=>a+b,0)/200 : null;
+  if (price > sma50) score++;
+  if (sma200 && price > sma200) score++;
+  if (sma200 && sma50 > sma200 && n >= 70) {
+    const old50 = closes.slice(-70,-20).reduce((a,b)=>a+b,0)/50;
+    if (old50 < sma200 * 0.99) score += 3;
+  }
+  let gains = 0, losses = 0;
+  for (let i = n-14; i < n; i++) { const d = closes[i]-closes[i-1]; if(d>0) gains+=d; else losses-=d; }
+  const rsi = Math.round(100 - 100/(1 + (losses===0?100:gains/losses)));
+  if (rsi >= 45 && rsi <= 65) score++;
+  const avgVol20 = volumes.slice(-20).reduce((a,b)=>a+b,0)/20||1;
+  if (volumes.slice(-5).reduce((a,b)=>a+b,0)/5 > avgVol20*1.1) score++;
+  const high52 = Math.max(...closes.slice(-Math.min(252,n)));
+  const low52  = Math.min(...closes.slice(-Math.min(252,n)));
+  if (price >= high52*0.85) score++;
+  if (n >= 60) {
+    const [p60,p40,p20,p5] = [closes[n-60],closes[n-40],closes[n-20],closes[n-5]];
+    if (p60 < p40 && p40 < p20 && p20 < p5) score += 2;
+  }
+  const ret3m = n >= 60  ? +((price-closes[n-60])/closes[n-60]*100).toFixed(1) : 0;
+  const ret6m = n >= 120 ? +((price-closes[n-120])/closes[n-120]*100).toFixed(1) : 0;
+  if (ret3m > 10) { score += 1; score += 2; }
+  if (ret6m > 20) score += 2;
+  let atrSum = 0, atrCt = 0;
+  for (let i = Math.max(1,n-14); i < n; i++) { atrSum+=Math.max(highs[i]-lows[i],Math.abs(highs[i]-closes[i-1]),Math.abs(lows[i]-closes[i-1])); atrCt++; }
+  const atr = atrCt ? atrSum/atrCt : price*0.02;
+  return { score, data: { price, sma50, sma200, rsi, ret3m, ret6m, high52, low52, atr } };
+}
+
+function scoreFundamentalsAI(metrics) {
+  if (!metrics) return { score: 0, data: {} };
+  let score = 0;
+  const rg=metrics['revenueGrowthTTMYoy']??null, eg=metrics['epsGrowth']??null;
+  const gm=metrics['grossMarginTTM']??null, de=metrics['totalDebt/totalEquityAnnual']??null;
+  const pe=metrics['peTTM']??null, fcf=(metrics['freeCashFlowTTM']??metrics['freeCashFlowPerShareTTM']??null);
+  const roe=metrics['roeTTM']??null, tgt=metrics['targetUpside']??null, bp=metrics['buyPct']??null;
+  if (rg!==null&&rg>15) score+=2; if (eg!==null&&eg>20) score+=2;
+  if (gm!==null&&gm>40) score+=1; if (de!==null&&de<1.0) score+=1;
+  if (pe!==null&&pe>0&&pe<35) score+=1; if (fcf!==null&&fcf>0) score+=1;
+  if (roe!==null&&roe>15) score+=1; if (tgt!==null&&tgt>20) score+=2;
+  if (bp!==null&&bp>60) score+=2;
+  return { score, data: { revenueGrowth:rg, epsGrowth:eg, grossMargin:gm, debtEquity:de, pe, fcfPositive:fcf!==null?fcf>0:null, roe, targetUpside:tgt, buyPct:bp } };
+}
+
+async function analyzeWithClaude(key, stock) {
+  const { ticker, price, techData, fundData, newsData, totalScore, high52, low52 } = stock;
+  const atr = techData.atr || price * 0.02;
+  const prompt = `You are an expert swing trader. Analyze this stock for a 6-month hold setup.
+Stock: ${ticker} | Price: $${price?.toFixed(2)} | Score: ${totalScore}/28
+52-Week: $${low52?.toFixed(2)} – $${high52?.toFixed(2)}
+Technical: RSI ${techData.rsi}, vs50MA ${techData.sma50?((price/techData.sma50-1)*100).toFixed(1)+'%':'N/A'}, 3m ${techData.ret3m}%, 6m ${techData.ret6m}%
+Fundamentals: RevGrowth ${fundData.revenueGrowth??'N/A'}%, EPS ${fundData.epsGrowth??'N/A'}%, GM ${fundData.grossMargin??'N/A'}%, P/E ${fundData.pe??'N/A'}, ROE ${fundData.roe??'N/A'}%, analyst upside ${fundData.targetUpside??'N/A'}%
+News: ${newsData.headlines.slice(0,3).join(' | ')||'none'}
+Return ONLY valid JSON: {"thesis":"string","catalysts":["c1","c2","c3"],"entry":{"price":${price?.toFixed(2)},"strategy":"string"},"stopLoss":{"price":${(price-1.5*atr).toFixed(2)},"reasoning":"string"},"takeProfit":{"target1":{"price":${(price*1.15).toFixed(2)},"pct":15,"reasoning":"string"},"target2":{"price":${(price*1.28).toFixed(2)},"pct":28,"reasoning":"string"},"target3":{"price":${(price*1.42).toFixed(2)},"pct":42,"reasoning":"string"}},"riskReward":2.8,"confidence":7,"riskScore":5,"timeframe":"3-6 months","maxDownside":-10,"potentialUpside":30,"verdict":"string","newsSupport":"string","keyRisks":["r1","r2"]}`;
+  const anthropic = new Anthropic({ apiKey: key });
+  const msg = await anthropic.messages.create({ model:'claude-sonnet-4-6', max_tokens:1024, messages:[{role:'user',content:prompt}] });
+  const text = msg.content[0]?.text || '{}';
+  const match = text.match(/\{[\s\S]*\}/);
+  return match ? JSON.parse(match[0]) : null;
+}
+
+function formatScoutAlertMsg(p) {
+  const t1=p.takeProfit?.target1, t2=p.takeProfit?.target2, t3=p.takeProfit?.target3;
+  const entry=p.entry?.price||p.price, sl=p.stopLoss?.price||0;
+  return `🎯 SCOUT PICK — EDGE TRACKER
+━━━━━━━━━━━━━━━━━━━━━━━━
+📌 <b>${p.ticker}</b> · $${p.price?.toFixed(2)} · ${p.timeframe||'3-6 months'}
+━━━━━━━━━━━━━━━━━━━━━━━━
+📝 ${p.thesis||'—'}
+
+🚀 ${(p.catalysts||[]).slice(0,2).map(c=>`• ${c}`).join('\n')}
+
+📊 Entry: $${(+entry).toFixed(2)} | Stop: $${(+sl).toFixed(2)} (${p.maxDownside}%)
+T1: $${t1?.price?.toFixed(2)||'—'} (+${t1?.pct||'—'}%) · T2: $${t2?.price?.toFixed(2)||'—'} · T3: $${t3?.price?.toFixed(2)||'—'}
+
+📈 R/R ${p.riskReward}:1 · Conf ${p.confidence}/10 · Risk ${p.riskScore}/10
+💡 ${p.verdict||'—'} | ⚠️ ${(p.keyRisks||[]).join(', ')}`;
+}
+
+async function runScoutScan() {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const anthropicKey = await getAnthropicKey();
+  const usersSnap = await db.collection('users').get();
+  const customTickers = new Set();
+  usersSnap.forEach(doc => {
+    const d = doc.data();
+    if (d.scoutAlertsEnabled && d.scoutCustomTickers)
+      d.scoutCustomTickers.split(',').forEach(t => { const tk=t.trim().toUpperCase(); if(tk) customTickers.add(tk); });
+  });
+  let universe = [...new Set([...SCOUT_UNIVERSE, ...customTickers])];
+  try {
+    const symResp = await fetch(`https://finnhub.io/api/v1/stock/symbol?exchange=US&token=${FINNHUB_KEY}`);
+    const symData = await symResp.json();
+    if (Array.isArray(symData)) {
+      const extra = symData.filter(s=>(s.type==='Common Stock'||s.type==='EQ')&&/^[A-Z]{1,5}$/.test(s.symbol)).map(s=>s.symbol);
+      universe = [...new Set([...universe, ...extra.slice(0,1800)])];
+    }
+  } catch(_) {}
+  console.log(`Scout: scanning ${universe.length} symbols`);
+  const validStocks = [];
+  for (let i = 0; i < Math.min(universe.length,2500); i++) {
+    if (i>0&&i%8===0) await sleep(950);
+    try {
+      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${universe[i]}&token=${FINNHUB_KEY}`);
+      const q = await r.json();
+      if (q?.c>=5&&q.c<=2000&&q.v>500000) validStocks.push({ ticker:universe[i], price:q.c });
+    } catch(_) {}
+  }
+  console.log(`Scout: ${validStocks.length} passed price/volume filter`);
+  const scored = [];
+  for (let i = 0; i < validStocks.length; i++) {
+    const { ticker, price } = validStocks[i];
+    if (i>0&&i%5===0) await sleep(1050);
+    const [cr,mr,nr] = await Promise.allSettled([fetchCandles90(ticker), fetchMetrics(ticker), fetchNews30(ticker)]);
+    const tech = scoreTechnicalsAI(cr.value);
+    const fund = scoreFundamentalsAI(mr.value);
+    const news = scoreNewsArticles(nr.value||[]);
+    const newsScore = Math.max(0, Math.min(5, (news.score>3?2:0)+(news.hasCatalyst?3:0)));
+    const total = tech.score + fund.score + newsScore;
+    if (total >= 12) scored.push({ ticker, price, totalScore:total, techData:tech.data, fundData:fund.data, newsData:news, high52:tech.data.high52||price*1.1, low52:tech.data.low52||price*0.7 });
+    await sleep(480);
+  }
+  scored.sort((a,b) => b.totalScore-a.totalScore);
+  const scanRunId = Date.now();
+  const picks = [];
+  for (const stock of scored.slice(0,30)) {
+    let analysis = null;
+    if (anthropicKey) { try { await sleep(700); analysis = await analyzeWithClaude(anthropicKey, stock); } catch(e){ console.error('Claude:',e.message); } }
+    const atr = stock.techData.atr || stock.price*0.02;
+    const pick = {
+      ticker: stock.ticker, price: stock.price, score: stock.totalScore,
+      ...(analysis || {
+        thesis: `Score ${stock.totalScore}/28. RSI ${stock.techData.rsi}, ${stock.techData.ret3m}% 3m return.`,
+        catalysts: ['Technical breakout','Volume expansion','Momentum building'],
+        entry: { price:stock.price, strategy:'Buy at current price or on pullback to 20MA' },
+        stopLoss: { price:+(stock.price-1.5*atr).toFixed(2), reasoning:'1.5× ATR below entry' },
+        takeProfit: { target1:{price:+(stock.price*1.12).toFixed(2),pct:12,reasoning:'Near-term resistance'}, target2:{price:+(stock.price*1.25).toFixed(2),pct:25,reasoning:'Mid-term target'}, target3:{price:+(stock.price*1.40).toFixed(2),pct:40,reasoning:'Full-run target'} },
+        riskReward:2.5, confidence:Math.min(9,Math.round(stock.totalScore/3)), riskScore:Math.max(2,10-Math.round(stock.totalScore/4)),
+        timeframe:'3-6 months', maxDownside:-(1.5*atr/stock.price*100).toFixed(1), potentialUpside:+(6*atr/stock.price*100).toFixed(1),
+        verdict:`Strong technical setup scoring ${stock.totalScore}/28.`,
+        newsSupport: stock.newsData.score>0?'Positive news flow supports setup.':'Monitor for news catalysts.',
+        keyRisks:['Market-wide downturn','Sector rotation']
+      }),
+      scannedAt: admin.firestore.Timestamp.now(), status:'active',
+      headlines: stock.newsData.headlines, high52:stock.high52, low52:stock.low52, scanRunId
+    };
+    picks.push(pick);
+    await db.collection('scoutPicks').doc(`${stock.ticker}_${scanRunId}`).set(pick);
+  }
+  await db.collection('scoutMeta').doc('latest').set({
+    scanRunId, scannedAt:admin.firestore.Timestamp.now(),
+    scannedCount:validStocks.length, qualifiedCount:scored.length,
+    picksCount:picks.length,
+    avgConfidence: picks.length ? +(picks.reduce((s,p)=>s+(p.confidence||0),0)/picks.length).toFixed(1) : 0
+  });
+  const highConf = picks.filter(p=>(p.confidence||0)>=8);
+  if (highConf.length) {
+    const alertUsers = [];
+    usersSnap.forEach(doc=>{ const d=doc.data(); if(d.scoutAlertsEnabled&&d.telegramChatId) alertUsers.push(d); });
+    for (const user of alertUsers) {
+      const minConf=user.scoutNotifMinConf??8, maxRisk=user.scoutNotifMaxRisk??6;
+      const eligible = highConf.filter(p=>(p.confidence||0)>=minConf&&(p.riskScore||5)<=maxRisk);
+      for (const pick of eligible.slice(0,3)) { await sendTelegram(user.telegramChatId, formatScoutAlertMsg(pick)); await sleep(300); }
+    }
+  }
+  return { scannedCount:validStocks.length, qualifiedCount:scored.length, picksCount:picks.length };
+}
+
+exports.runScoutNow = onCall(async (request) => {
+  if (!request.auth) throw new Error('Unauthorized');
+  return await runScoutScan();
+});
+
+exports.scoutStocks = onSchedule('every 6 hours', async () => { await runScoutScan(); });
+
+exports.checkScoutPerformance = onSchedule('every 30 minutes', async () => {
+  const picksSnap = await db.collection('scoutPicks').where('status','==','active').get();
+  if (picksSnap.empty) return;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const tickers = [...new Set(picksSnap.docs.map(d=>d.data().ticker))];
+  const priceMap = {};
+  for (const ticker of tickers) { await sleep(220); const q=await fetchQuote(ticker); if(q) priceMap[ticker]=q; }
+  const usersSnap = await db.collection('users').get();
+  const alertUsers = [];
+  usersSnap.forEach(doc=>{ const d=doc.data(); if(d.telegramChatId&&(d.scoutAlertOnTarget1||d.scoutAlertOnStop)) alertUsers.push(d); });
+  for (const pickDoc of picksSnap.docs) {
+    const pick = pickDoc.data();
+    const q = priceMap[pick.ticker];
+    if (!q) continue;
+    const price=q.price, sl=pick.stopLoss?.price, t1=pick.takeProfit?.target1?.price;
+    const t2=pick.takeProfit?.target2?.price, t3=pick.takeProfit?.target3?.price;
+    let newStatus='active', alertMsg=null;
+    if (sl&&price<=sl) { newStatus='stopped_out'; alertMsg=`🛑 STOP HIT: ${pick.ticker} at $${price.toFixed(2)} (SL $${sl.toFixed(2)})`; }
+    else if (t3&&price>=t3) { newStatus='target3_hit'; alertMsg=`🏆 TARGET 3 HIT: ${pick.ticker} at $${price.toFixed(2)}`; }
+    else if (t2&&price>=t2&&pick.status!=='target2_hit') { newStatus='target2_hit'; alertMsg=`🎯 TARGET 2: ${pick.ticker} at $${price.toFixed(2)} (+${pick.takeProfit?.target2?.pct}%)`; }
+    else if (t1&&price>=t1&&pick.status==='active') { newStatus='target1_hit'; alertMsg=`✅ TARGET 1: ${pick.ticker} at $${price.toFixed(2)} (+${pick.takeProfit?.target1?.pct}%)`; }
+    if (newStatus!==pick.status) {
+      await pickDoc.ref.update({ status:newStatus, lastChecked:admin.firestore.Timestamp.now() });
+      if (alertMsg) for (const user of alertUsers) {
+        if ((newStatus==='target1_hit'&&user.scoutAlertOnTarget1)||(newStatus==='stopped_out'&&user.scoutAlertOnStop)||(newStatus==='target2_hit'||newStatus==='target3_hit'))
+          await sendTelegram(user.telegramChatId, alertMsg);
+      }
+    } else { await pickDoc.ref.update({ currentPrice:price, lastChecked:admin.firestore.Timestamp.now() }); }
   }
 });
