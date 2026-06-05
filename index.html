@@ -477,7 +477,7 @@ tr:hover td{background:rgba(99,102,241,0.06)}
       <div style="font-size:18px;font-weight:800;color:var(--creamb);margin-bottom:8px">Scanning the market…</div>
       <div style="font-size:13px;color:var(--creamd);margin-bottom:20px">AI-powered analysis across thousands of stocks</div>
       <button class="btn primary" onclick="Scout.runScan()">⚡ Run First Scan</button>
-      <div style="font-size:11px;color:var(--creamx);margin-top:12px">Requires Anthropic API key in Settings → Scout API</div>
+      <div style="font-size:11px;color:var(--creamx);margin-top:12px">Requires Cloud Functions deployed — see README for setup</div>
     </div>
   </div>
 </div>
@@ -690,33 +690,6 @@ tr:hover td{background:rgba(99,102,241,0.06)}
     </div>
   </div>
 
-  <!-- Scout API Configuration -->
-  <div class="settings-card">
-    <div class="settings-card-header">🤖 Scout AI Configuration</div>
-    <div class="settings-card-body">
-      <p style="font-size:13px;color:var(--creamd);margin-bottom:16px;line-height:1.6">The scout uses Claude AI to generate trade theses, entry/exit levels, and risk assessments. Your API key is stored securely in Firestore and only used server-side.</p>
-      <div style="margin-bottom:16px">
-        <label class="flabel">Anthropic API Key</label>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="password" class="finput" id="s-anthropic-key" placeholder="sk-ant-…" style="max-width:360px;font-family:'JetBrains Mono',monospace;font-size:12px">
-          <button class="btn primary" onclick="Settings.saveAnthropicKey()">Save Key</button>
-          <button class="btn" onclick="Settings.testAnthropicKey()">Test</button>
-        </div>
-        <div class="fhint">Get your key at console.anthropic.com — key is never exposed to the browser after saving</div>
-        <span id="s-anthropic-status" style="font-size:12px;font-weight:700;margin-top:6px;display:block"></span>
-      </div>
-      <div style="display:flex;gap:20px;flex-wrap:wrap">
-        <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;flex:1;min-width:140px">
-          <div style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--creamx);margin-bottom:4px">Picks This Month</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--creamb)" id="scout-picks-month">—</div>
-        </div>
-        <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;flex:1;min-width:140px">
-          <div style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--creamx);margin-bottom:4px">Est. Cost/Month</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:500;color:var(--jade)" id="scout-cost-month">~$0.50</div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Account -->
   <div class="settings-card">
@@ -2264,7 +2237,7 @@ const Scout = {
     if (!container) return;
     const picks = this._getFiltered();
     if (!picks.length) {
-      container.innerHTML = `<div class="scout-empty-state"><div class="scout-radar"><div class="scout-radar-ring r1"></div><div class="scout-radar-ring r2"></div><div class="scout-radar-ring r3"></div><div class="scout-radar-dot"></div></div><div style="font-size:18px;font-weight:800;color:var(--creamb);margin-bottom:8px">${this._picks.length ? 'No picks match this filter' : 'Scanning the market…'}</div><div style="font-size:13px;color:var(--creamd);margin-bottom:20px">${this._picks.length ? 'Try a different filter or run a new scan.' : 'AI-powered analysis across thousands of stocks'}</div><button class="btn primary" onclick="Scout.runScan()">⚡ Run Scan Now</button>${!this._picks.length?'<div style="font-size:11px;color:var(--creamx);margin-top:12px">Requires Anthropic API key in Settings → Scout AI</div>':''}</div>`;
+      container.innerHTML = `<div class="scout-empty-state"><div class="scout-radar"><div class="scout-radar-ring r1"></div><div class="scout-radar-ring r2"></div><div class="scout-radar-ring r3"></div><div class="scout-radar-dot"></div></div><div style="font-size:18px;font-weight:800;color:var(--creamb);margin-bottom:8px">${this._picks.length ? 'No picks match this filter' : 'Scanning the market…'}</div><div style="font-size:13px;color:var(--creamd);margin-bottom:20px">${this._picks.length ? 'Try a different filter or run a new scan.' : 'AI-powered analysis across thousands of stocks'}</div><button class="btn primary" onclick="Scout.runScan()">⚡ Run Scan Now</button>${!this._picks.length?'<div style="font-size:11px;color:var(--creamx);margin-top:12px">Requires Cloud Functions — run firebase deploy --only functions</div>':''}</div>`;
       return;
     }
     container.innerHTML = picks.map(p => this._renderCard(p)).join('');

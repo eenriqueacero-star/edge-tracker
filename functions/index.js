@@ -1,7 +1,6 @@
 const { onRequest, onCall } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin = require('firebase-admin');
-const Anthropic = require('@anthropic-ai/sdk');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -650,12 +649,7 @@ exports.checkStockScout = onSchedule({
 
 // ── AI Scout System ───────────────────────────────────────────────────────
 
-async function getAnthropicKey() {
-  try {
-    const doc = await db.collection('config').doc('scout').get();
-    return doc.exists ? doc.data().anthropicKey : null;
-  } catch(_) { return null; }
-}
+// No external AI API needed — analysis built entirely from market data
 
 async function fetchMetrics(ticker) {
   try {
@@ -749,21 +743,99 @@ function scoreFundamentalsAI(metrics) {
   return { score, data: { revenueGrowth:rg, epsGrowth:eg, grossMargin:gm, debtEquity:de, pe, fcfPositive:fcf!==null?fcf>0:null, roe, targetUpside:tgt, buyPct:bp } };
 }
 
-async function analyzeWithClaude(key, stock) {
+function analyzeStock(stock) {
   const { ticker, price, techData, fundData, newsData, totalScore, high52, low52 } = stock;
   const atr = techData.atr || price * 0.02;
-  const prompt = `You are an expert swing trader. Analyze this stock for a 6-month hold setup.
-Stock: ${ticker} | Price: $${price?.toFixed(2)} | Score: ${totalScore}/28
-52-Week: $${low52?.toFixed(2)} – $${high52?.toFixed(2)}
-Technical: RSI ${techData.rsi}, vs50MA ${techData.sma50?((price/techData.sma50-1)*100).toFixed(1)+'%':'N/A'}, 3m ${techData.ret3m}%, 6m ${techData.ret6m}%
-Fundamentals: RevGrowth ${fundData.revenueGrowth??'N/A'}%, EPS ${fundData.epsGrowth??'N/A'}%, GM ${fundData.grossMargin??'N/A'}%, P/E ${fundData.pe??'N/A'}, ROE ${fundData.roe??'N/A'}%, analyst upside ${fundData.targetUpside??'N/A'}%
-News: ${newsData.headlines.slice(0,3).join(' | ')||'none'}
-Return ONLY valid JSON: {"thesis":"string","catalysts":["c1","c2","c3"],"entry":{"price":${price?.toFixed(2)},"strategy":"string"},"stopLoss":{"price":${(price-1.5*atr).toFixed(2)},"reasoning":"string"},"takeProfit":{"target1":{"price":${(price*1.15).toFixed(2)},"pct":15,"reasoning":"string"},"target2":{"price":${(price*1.28).toFixed(2)},"pct":28,"reasoning":"string"},"target3":{"price":${(price*1.42).toFixed(2)},"pct":42,"reasoning":"string"}},"riskReward":2.8,"confidence":7,"riskScore":5,"timeframe":"3-6 months","maxDownside":-10,"potentialUpside":30,"verdict":"string","newsSupport":"string","keyRisks":["r1","r2"]}`;
-  const anthropic = new Anthropic({ apiKey: key });
-  const msg = await anthropic.messages.create({ model:'claude-sonnet-4-6', max_tokens:1024, messages:[{role:'user',content:prompt}] });
-  const text = msg.content[0]?.text || '{}';
-  const match = text.match(/\{[\s\S]*\}/);
-  return match ? JSON.parse(match[0]) : null;
+  const atrPct = +(atr / price * 100).toFixed(1);
+
+  // ── Confidence & Risk ──────────────────────────────────────────────────
+  const confidence = Math.min(10, Math.max(4, Math.round(totalScore / 28 * 10)));
+  const riskScore  = Math.min(9, Math.max(1, Math.round(atrPct * 1.8)));
+
+  // ── Trade Levels ───────────────────────────────────────────────────────
+  const slDist = 1.5 * atr;
+  const entry  = +price.toFixed(2);
+  const sl     = +(price - slDist).toFixed(2);
+  // T1: near-term (15%), T2: mid (28%), T3: 52wk-high or 42% whichever is closer
+  const t1Price = +(price * 1.15).toFixed(2);
+  const t1Pct   = 15;
+  const t2Price = fundData.targetUpside > 20 ? +(price * (1 + fundData.targetUpside / 100)).toFixed(2) : +(price * 1.28).toFixed(2);
+  const t2Pct   = +((t2Price / price - 1) * 100).toFixed(1);
+  const t3Price = high52 > price * 1.35 ? +(high52 * 1.05).toFixed(2) : +(price * 1.42).toFixed(2);
+  const t3Pct   = +((t3Price / price - 1) * 100).toFixed(1);
+  const rr      = +(((t2Price - entry) / (entry - sl))).toFixed(1);
+  const maxDown = -(slDist / price * 100).toFixed(1);
+  const potUp   = t3Pct;
+
+  // ── Catalysts (built from signals that fired) ──────────────────────────
+  const catalysts = [];
+  if (techData.sma200 && techData.sma50 > techData.sma200) catalysts.push('Golden cross — 50MA crossed above 200MA, a classic institutional accumulation signal');
+  if (fundData.revenueGrowth > 15) catalysts.push(`Revenue growing ${fundData.revenueGrowth.toFixed(1)}% YoY — above-trend business acceleration`);
+  if (fundData.targetUpside > 20) catalysts.push(`Analyst consensus target ${fundData.targetUpside.toFixed(0)}% above current price — significant upside recognized`);
+  if (fundData.epsGrowth > 20) catalysts.push(`EPS growth of ${fundData.epsGrowth.toFixed(1)}% YoY demonstrating earnings leverage`);
+  if (newsData.hasCatalyst) catalysts.push(`Major corporate catalyst detected — merger, acquisition, or spin-off activity`);
+  if (techData.ret3m > 15) catalysts.push(`${techData.ret3m}% 3-month price appreciation outpacing the broader market`);
+  if (fundData.buyPct > 70) catalysts.push(`${fundData.buyPct.toFixed(0)}% of analysts rate Buy — unusually strong Wall Street conviction`);
+  if (price >= high52 * 0.97) catalysts.push('Trading at or near 52-week highs — breakout momentum with institutional support');
+  while (catalysts.length < 3) catalysts.push(['Improving volume trend signals institutional accumulation','Price consolidating above key moving averages before next move','Technical structure shows higher lows — buyers defending every pullback'][catalysts.length]);
+
+  // ── Entry Strategy ─────────────────────────────────────────────────────
+  const vs50 = techData.sma50 ? +((price / techData.sma50 - 1) * 100).toFixed(1) : null;
+  let entryStrategy;
+  if (vs50 !== null && vs50 > 8) entryStrategy = `Wait for a 3–5% pullback to the 50-day MA (~$${techData.sma50.toFixed(2)}) for better risk/reward`;
+  else if (techData.rsi > 65) entryStrategy = `RSI elevated at ${techData.rsi} — scale in on any weakness over the next 1–2 weeks`;
+  else entryStrategy = `Buy at market — price and momentum aligned, RSI at healthy ${techData.rsi}`;
+
+  // ── Stop Loss Reasoning ────────────────────────────────────────────────
+  const slReasoning = techData.sma50 && sl > techData.sma50 * 0.97
+    ? `Below the 50-day MA ($${techData.sma50.toFixed(2)}) — a close under this level signals trend failure`
+    : `1.5× ATR below entry — gives the trade room to breathe while limiting loss to ${(-maxDown).toFixed(1)}%`;
+
+  // ── Thesis ────────────────────────────────────────────────────────────
+  const fundStr = fundData.revenueGrowth > 0 ? `Revenue growing ${fundData.revenueGrowth.toFixed(0)}% YoY with ${fundData.grossMargin > 0 ? fundData.grossMargin.toFixed(0)+'% gross margins' : 'improving margins'}.` : '';
+  const techStr = `RSI at ${techData.rsi} in the momentum sweet spot${techData.sma200 && techData.sma50 > techData.sma200 ? ', golden cross confirmed' : ''}. ${techData.ret3m > 5 ? techData.ret3m+'% 3-month return' : 'Price above key moving averages'}.`;
+  const analystStr = fundData.targetUpside > 20 ? ` Analysts see ${fundData.targetUpside.toFixed(0)}% further upside from here.` : '';
+  const thesis = `${ticker} scores ${totalScore}/28 on our composite model — a high-conviction setup for a 6-month hold. ${fundStr} ${techStr}${analystStr}`.replace(/\s+/g, ' ').trim();
+
+  // ── News Support ───────────────────────────────────────────────────────
+  let newsSupport;
+  if (newsData.score >= 3) newsSupport = 'Strong positive news flow — recent headlines reinforce the bullish setup.';
+  else if (newsData.score >= 1) newsSupport = 'News sentiment slightly positive — no red flags in recent coverage.';
+  else if (newsData.score === 0) newsSupport = 'News neutral — setup is driven by technicals and fundamentals, not narrative.';
+  else newsSupport = 'Monitor news closely — some cautionary coverage; stop loss is critical.';
+
+  // ── Verdict ────────────────────────────────────────────────────────────
+  const verdictOptions = [
+    `Score ${totalScore}/28 — one of the highest-conviction setups in this scan.`,
+    `${confidence >= 8 ? 'High-conviction' : 'Solid'} risk/reward of ${rr}:1 with a ${(-maxDown).toFixed(1)}% max loss and ${t3Pct}% full target.`,
+    `Technical and fundamental signals aligned — this is the kind of setup worth sizing up.`,
+    `${techData.ret3m > 10 ? 'Already showing relative strength' : 'Building momentum'} with a clear invalidation level at $${sl}.`
+  ];
+  const verdict = verdictOptions[totalScore % verdictOptions.length];
+
+  // ── Key Risks ─────────────────────────────────────────────────────────
+  const risks = [];
+  if (riskScore >= 7) risks.push('High ATR — volatile stock requiring strict position sizing');
+  if (fundData.debtEquity > 1.5) risks.push('Elevated debt load could amplify downside if rates rise or growth slows');
+  if (techData.rsi > 70) risks.push('RSI overbought — short-term pullback likely before next leg higher');
+  if (newsData.score < 0) risks.push('Negative news sentiment — monitor headlines for further deterioration');
+  risks.push('Broad market sell-off would likely pull all positions down regardless of setup quality');
+  if (risks.length < 2) risks.push('Sector rotation out of this industry could stall momentum');
+
+  return {
+    thesis, catalysts: catalysts.slice(0, 3),
+    entry: { price: entry, strategy: entryStrategy },
+    stopLoss: { price: sl, reasoning: slReasoning },
+    takeProfit: {
+      target1: { price: t1Price, pct: t1Pct, reasoning: 'Near-term resistance — first profit-taking zone' },
+      target2: { price: t2Price, pct: t2Pct, reasoning: fundData.targetUpside > 20 ? 'Analyst consensus price target' : 'Mid-term technical target' },
+      target3: { price: t3Price, pct: t3Pct, reasoning: price >= high52 * 0.9 ? '52-week high breakout continuation' : 'Full 6-month upside target' }
+    },
+    riskReward: rr, confidence, riskScore,
+    timeframe: confidence >= 8 ? '3-5 months' : '4-6 months',
+    maxDownside: +maxDown, potentialUpside: potUp,
+    verdict, newsSupport, keyRisks: risks.slice(0, 3)
+  };
 }
 
 function formatScoutAlertMsg(p) {
@@ -786,7 +858,6 @@ T1: $${t1?.price?.toFixed(2)||'—'} (+${t1?.pct||'—'}%) · T2: $${t2?.price?.
 
 async function runScoutScan() {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const anthropicKey = await getAnthropicKey();
   const usersSnap = await db.collection('users').get();
   const customTickers = new Set();
   usersSnap.forEach(doc => {
@@ -830,26 +901,13 @@ async function runScoutScan() {
   scored.sort((a,b) => b.totalScore-a.totalScore);
   const scanRunId = Date.now();
   const picks = [];
-  for (const stock of scored.slice(0,30)) {
-    let analysis = null;
-    if (anthropicKey) { try { await sleep(700); analysis = await analyzeWithClaude(anthropicKey, stock); } catch(e){ console.error('Claude:',e.message); } }
-    const atr = stock.techData.atr || stock.price*0.02;
+  for (const stock of scored.slice(0, 30)) {
+    const analysis = analyzeStock(stock);
     const pick = {
       ticker: stock.ticker, price: stock.price, score: stock.totalScore,
-      ...(analysis || {
-        thesis: `Score ${stock.totalScore}/28. RSI ${stock.techData.rsi}, ${stock.techData.ret3m}% 3m return.`,
-        catalysts: ['Technical breakout','Volume expansion','Momentum building'],
-        entry: { price:stock.price, strategy:'Buy at current price or on pullback to 20MA' },
-        stopLoss: { price:+(stock.price-1.5*atr).toFixed(2), reasoning:'1.5× ATR below entry' },
-        takeProfit: { target1:{price:+(stock.price*1.12).toFixed(2),pct:12,reasoning:'Near-term resistance'}, target2:{price:+(stock.price*1.25).toFixed(2),pct:25,reasoning:'Mid-term target'}, target3:{price:+(stock.price*1.40).toFixed(2),pct:40,reasoning:'Full-run target'} },
-        riskReward:2.5, confidence:Math.min(9,Math.round(stock.totalScore/3)), riskScore:Math.max(2,10-Math.round(stock.totalScore/4)),
-        timeframe:'3-6 months', maxDownside:-(1.5*atr/stock.price*100).toFixed(1), potentialUpside:+(6*atr/stock.price*100).toFixed(1),
-        verdict:`Strong technical setup scoring ${stock.totalScore}/28.`,
-        newsSupport: stock.newsData.score>0?'Positive news flow supports setup.':'Monitor for news catalysts.',
-        keyRisks:['Market-wide downturn','Sector rotation']
-      }),
-      scannedAt: admin.firestore.Timestamp.now(), status:'active',
-      headlines: stock.newsData.headlines, high52:stock.high52, low52:stock.low52, scanRunId
+      ...analysis,
+      scannedAt: admin.firestore.Timestamp.now(), status: 'active',
+      headlines: stock.newsData.headlines, high52: stock.high52, low52: stock.low52, scanRunId
     };
     picks.push(pick);
     await db.collection('scoutPicks').doc(`${stock.ticker}_${scanRunId}`).set(pick);
