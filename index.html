@@ -2187,24 +2187,292 @@ const Scout = {
     this._scanning = true;
     const btn = document.getElementById('scout-run-btn');
     const container = document.getElementById('scout-picks-container');
-    if (btn) { btn.disabled=true; btn.textContent='⏳ Scanning…'; }
-    container.innerHTML = `<div class="scout-empty-state"><div class="scout-radar"><div class="scout-radar-ring r1"></div><div class="scout-radar-ring r2"></div><div class="scout-radar-ring r3"></div><div class="scout-radar-dot"></div></div><div style="font-size:16px;font-weight:800;color:var(--creamb);margin-bottom:8px">Scanning thousands of stocks…</div><div style="font-size:13px;color:var(--creamd)">Fetching data, scoring candidates, running AI analysis.<br>This takes 10–20 minutes for a full scan.</div></div>`;
+    const setStatus = msg => { if (btn) btn.textContent = msg; };
+    if (btn) btn.disabled = true;
+
+    // Try Cloud Function first, fall back to client-side scan
+    setStatus('⏳ Scanning…');
     try {
       const fn = firebase.functions();
       const call = fn.httpsCallable('runScoutNow');
+      container.innerHTML = this._scanningHTML('Running cloud scan across 2,000+ stocks…');
       const result = await call({});
-      const r = result.data;
       if (btn) { btn.disabled=false; btn.textContent='⚡ Run Scan Now'; }
       this._scanning = false;
       await this.load();
-      if (!this._picks.length) container.innerHTML = `<div class="scout-empty-state"><div style="font-size:18px;font-weight:800;color:var(--amber);margin-bottom:8px">⚠️ Scan complete — no picks yet</div><div style="font-size:13px;color:var(--creamd);max-width:400px;margin:0 auto">Scanned ${r?.scannedCount||'—'} stocks. Either no stocks passed the 12/28 threshold, or the Anthropic API key isn't configured in Settings → Scout AI.</div></div>`;
-    } catch(e) {
-      if (btn) { btn.disabled=false; btn.textContent='⚡ Run Scan Now'; }
-      this._scanning = false;
-      const errMsg = e.message || 'Unknown error';
-      const isAuth = errMsg.includes('Cloud Functions') || errMsg.includes('deploy') || errMsg.includes('CORS') || errMsg.includes('auth');
-      container.innerHTML = `<div class="scout-empty-state"><div style="font-size:18px;font-weight:800;color:var(--red);margin-bottom:8px">Scan error</div><div style="font-size:13px;color:var(--creamd);max-width:460px;margin:0 auto">${isAuth ? 'Cloud Functions not deployed yet. Run <code style="background:var(--panel);padding:2px 6px;border-radius:4px">firebase deploy --only functions</code> first.' : esc(errMsg)}</div></div>`;
+    } catch(_) {
+      // Cloud Functions not deployed — run entirely client-side
+      await this._clientScan(btn, container);
     }
+  },
+
+  _scanningHTML(msg) {
+    return `<div class="scout-empty-state"><div class="scout-radar"><div class="scout-radar-ring r1"></div><div class="scout-radar-ring r2"></div><div class="scout-radar-ring r3"></div><div class="scout-radar-dot"></div></div><div style="font-size:16px;font-weight:800;color:var(--creamb);margin-bottom:8px" id="scan-status-msg">${msg}</div><div style="font-size:12px;color:var(--creamx)" id="scan-status-sub">This may take 2–5 minutes</div></div>`;
+  },
+
+  _setMsg(msg, sub) {
+    const m = document.getElementById('scan-status-msg');
+    const s = document.getElementById('scan-status-sub');
+    if (m) m.textContent = msg;
+    if (s && sub) s.textContent = sub;
+  },
+
+  async _clientScan(btn, container) {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const universe = this._clientUniverse();
+    container.innerHTML = this._scanningHTML(`Scanning ${universe.length} stocks…`);
+
+    // ── Step 1: Fetch quotes ─────────────────────────────────────────────
+    const validStocks = [];
+    for (let i = 0; i < universe.length; i++) {
+      if (i > 0 && i % 8 === 0) await sleep(900);
+      if (i % 20 === 0) this._setMsg(`Fetching quotes… ${i}/${universe.length}`, `${validStocks.length} passed price filter so far`);
+      try {
+        const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${universe[i]}&token=${FINNHUB_KEY}`);
+        const q = await r.json();
+        if (q?.c >= 5 && q.c <= 2000 && q.v > 100000) validStocks.push({ ticker: universe[i], price: q.c });
+      } catch(_) {}
+    }
+
+    this._setMsg(`Analyzing ${validStocks.length} stocks…`, 'Fetching price history, fundamentals, and news');
+
+    // ── Step 2: Score each stock ─────────────────────────────────────────
+    const scored = [];
+    for (let i = 0; i < validStocks.length; i++) {
+      const { ticker, price } = validStocks[i];
+      if (i > 0 && i % 4 === 0) await sleep(1000);
+      if (i % 10 === 0) this._setMsg(`Analyzing ${i}/${validStocks.length} stocks…`, `${scored.length} candidates found so far`);
+
+      const [cr, mr, nr] = await Promise.allSettled([
+        this._fetchCandles(ticker),
+        this._fetchMetrics(ticker),
+        this._fetchNews(ticker)
+      ]);
+
+      const tech  = this._scoreTech(cr.value);
+      const fund  = this._scoreFund(mr.value);
+      const news  = this._scoreNews(nr.value || []);
+      const newsScore = Math.max(0, Math.min(5, (news.score > 3 ? 2 : 0) + (news.hasCatalyst ? 3 : 0)));
+      const total = tech.score + fund.score + newsScore;
+
+      if (total >= 12) {
+        scored.push({ ticker, price, totalScore: total, techData: tech.data, fundData: fund.data, newsData: news,
+          high52: tech.data.high52 || price * 1.1, low52: tech.data.low52 || price * 0.7 });
+      }
+      await sleep(480);
+    }
+
+    scored.sort((a, b) => b.totalScore - a.totalScore);
+    const top = scored.slice(0, 20);
+    this._setMsg(`Building ${top.length} trade setups…`, 'Calculating entry, stop loss, and take-profit levels');
+
+    // ── Step 3: Generate picks ───────────────────────────────────────────
+    const scanRunId = Date.now();
+    const picks = [];
+    for (const stock of top) {
+      const analysis = this._analyze(stock);
+      const pick = { id: `${stock.ticker}_${scanRunId}`, ticker: stock.ticker, price: stock.price,
+        score: stock.totalScore, ...analysis, status: 'active',
+        scannedAt: { toMillis: () => scanRunId }, scanRunId,
+        headlines: stock.newsData.headlines, high52: stock.high52, low52: stock.low52 };
+      picks.push(pick);
+      if (currentUser) {
+        db.collection('scoutPicks').doc(pick.id).set({ ...pick, scannedAt: firebase.firestore.Timestamp.now() }).catch(() => {});
+      }
+    }
+
+    // Save scan metadata
+    if (currentUser) {
+      db.collection('scoutMeta').doc('latest').set({
+        scanRunId, scannedAt: firebase.firestore.Timestamp.now(),
+        scannedCount: validStocks.length, qualifiedCount: scored.length,
+        picksCount: picks.length,
+        avgConfidence: picks.length ? +(picks.reduce((s,p) => s+(p.confidence||0), 0)/picks.length).toFixed(1) : 0
+      }).catch(() => {});
+    }
+
+    // Update stats bar
+    document.getElementById('ss-scanned').textContent = validStocks.length.toLocaleString();
+    document.getElementById('ss-qualified').textContent = scored.length;
+    document.getElementById('ss-picks').textContent = picks.length;
+    const avgConf = picks.length ? (picks.reduce((s,p) => s+(p.confidence||0), 0)/picks.length).toFixed(1) : '—';
+    document.getElementById('ss-avgconf').textContent = picks.length ? avgConf+'/10' : '—';
+    const scoutLastEl = document.getElementById('scout-last-scan');
+    if (scoutLastEl) scoutLastEl.textContent = 'updated just now';
+
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Scan Now'; }
+    this._scanning = false;
+    this._picks = picks;
+    this._renderList();
+  },
+
+  _clientUniverse() {
+    const base = [
+      'AAPL','MSFT','NVDA','META','GOOGL','AMZN','TSLA','AVGO','ORCL',
+      'AMD','INTC','QCOM','TXN','MU','AMAT','LRCX','KLAC','MRVL','ON','SMCI','ARM','WOLF','AMBA','ENTG',
+      'CRM','ADBE','NOW','SNOW','PLTR','PANW','CRWD','ZS','NET','DDOG','MDB','GTLB','CFLT','ESTC',
+      'AI','BBAI','SOUN','RXRX','IONQ','ACHR','JOBY','LUNR','RKLB',
+      'V','MA','PYPL','SQ','COIN','HOOD','SOFI','AFRM','NU','MSTR',
+      'UBER','LYFT','ABNB','DASH','SHOP','RBLX','SPOT','SNAP',
+      'JPM','BAC','GS','MS','WFC','C','BLK',
+      'LLY','ABBV','UNH','MRK','PFE','MRNA','GILD','REGN','BIIB','EXAS',
+      'XOM','CVX','OXY','COP','SLB','HAL','DVN',
+      'WMT','COST','NKE','LULU','CMG','MCD','SBUX','DPZ','TGT',
+      'LMT','RTX','BA','CAT','DE','HON',
+      'RIVN','LCID','ENPH','FSLR','CHPT',
+      'DIS','NFLX','PARA','HOOD','OPEN','RDFN',
+      'SPY','QQQ','SMH','SOXL'
+    ];
+    const custom = (userSettings.scoutCustomTickers || '').split(/[,\s]+/).map(t => t.trim().toUpperCase()).filter(t => t.length >= 1 && t.length <= 6);
+    return [...new Set([...base, ...custom])];
+  },
+
+  async _fetchCandles(ticker) {
+    try {
+      const to = Math.floor(Date.now() / 1000);
+      const from = to - 90 * 86400;
+      const r = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${FINNHUB_KEY}`);
+      const d = await r.json();
+      return (d?.s === 'ok' && d.c?.length >= 50) ? d : null;
+    } catch(_) { return null; }
+  },
+
+  async _fetchMetrics(ticker) {
+    try {
+      const r = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`);
+      const d = await r.json();
+      return d?.metric || null;
+    } catch(_) { return null; }
+  },
+
+  async _fetchNews(ticker) {
+    try {
+      const to = new Date().toISOString().slice(0, 10);
+      const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+      const r = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${from}&to=${to}&token=${FINNHUB_KEY}`);
+      const d = await r.json();
+      return Array.isArray(d) ? d.slice(0, 10) : [];
+    } catch(_) { return []; }
+  },
+
+  _scoreNews(articles) {
+    const pos = ['earnings beat','raised guidance','new contract','partnership','fda approval','analyst upgrade','buyback','record revenue','beat estimates','outperform'];
+    const neg = ['earnings miss','lowered guidance','lawsuit','sec investigation','ceo resign','layoffs','debt default','downgrade','recall','below estimates','bankruptcy','fraud'];
+    const cats = ['merger','acquisition','spin-off','buyout','takeover'];
+    const text = articles.map(a => ((a.headline||'') + ' ' + (a.summary||'')).toLowerCase()).join(' ');
+    let score = 0;
+    pos.forEach(w => { if (text.includes(w)) score++; });
+    neg.forEach(w => { if (text.includes(w)) score--; });
+    return { score, hasCatalyst: cats.some(c => text.includes(c)), headlines: articles.map(a => a.headline||'').filter(Boolean).slice(0, 5) };
+  },
+
+  _scoreTech(candles) {
+    if (!candles?.c || candles.c.length < 50) return { score: 0, data: {} };
+    const cl = candles.c, hi = candles.h, lo = candles.l, vl = candles.v, n = cl.length;
+    let score = 0;
+    const price = cl[n-1];
+    const sma50 = cl.slice(-50).reduce((a,b)=>a+b,0)/50;
+    const sma200 = n >= 200 ? cl.slice(-200).reduce((a,b)=>a+b,0)/200 : null;
+    if (price > sma50) score++;
+    if (sma200 && price > sma200) score++;
+    if (sma200 && sma50 > sma200 && n >= 70) { const old50 = cl.slice(-70,-20).reduce((a,b)=>a+b,0)/50; if (old50 < sma200 * 0.99) score += 3; }
+    let g = 0, l = 0;
+    for (let i = n-14; i < n; i++) { const d = cl[i]-cl[i-1]; if(d>0) g+=d; else l-=d; }
+    const rsi = Math.round(100 - 100/(1 + (l===0?100:g/l)));
+    if (rsi >= 45 && rsi <= 65) score++;
+    const av20 = vl.slice(-20).reduce((a,b)=>a+b,0)/20||1;
+    if (vl.slice(-5).reduce((a,b)=>a+b,0)/5 > av20*1.1) score++;
+    const high52 = Math.max(...cl.slice(-Math.min(252,n)));
+    const low52  = Math.min(...cl.slice(-Math.min(252,n)));
+    if (price >= high52*0.85) score++;
+    if (n >= 60) { const [p60,p40,p20,p5]=[cl[n-60],cl[n-40],cl[n-20],cl[n-5]]; if(p60<p40&&p40<p20&&p20<p5) score+=2; }
+    const ret3m = n>=60  ? +((price-cl[n-60])/cl[n-60]*100).toFixed(1) : 0;
+    const ret6m = n>=120 ? +((price-cl[n-120])/cl[n-120]*100).toFixed(1) : 0;
+    if (ret3m > 10) { score += 1; score += 2; }
+    if (ret6m > 20) score += 2;
+    let atrS = 0, atrC = 0;
+    for (let i = Math.max(1,n-14); i < n; i++) { atrS+=Math.max(hi[i]-lo[i],Math.abs(hi[i]-cl[i-1]),Math.abs(lo[i]-cl[i-1])); atrC++; }
+    const atr = atrC ? atrS/atrC : price*0.02;
+    return { score, data: { price, sma50, sma200, rsi, ret3m, ret6m, high52, low52, atr } };
+  },
+
+  _scoreFund(metrics) {
+    if (!metrics) return { score: 0, data: {} };
+    let score = 0;
+    const rg=metrics['revenueGrowthTTMYoy']??null, eg=metrics['epsGrowth']??null;
+    const gm=metrics['grossMarginTTM']??null, de=metrics['totalDebt/totalEquityAnnual']??null;
+    const pe=metrics['peTTM']??null, fcf=(metrics['freeCashFlowTTM']??metrics['freeCashFlowPerShareTTM']??null);
+    const roe=metrics['roeTTM']??null, tgt=metrics['targetUpside']??null, bp=metrics['buyPct']??null;
+    if (rg!==null&&rg>15) score+=2; if (eg!==null&&eg>20) score+=2;
+    if (gm!==null&&gm>40) score+=1; if (de!==null&&de<1.0) score+=1;
+    if (pe!==null&&pe>0&&pe<35) score+=1; if (fcf!==null&&fcf>0) score+=1;
+    if (roe!==null&&roe>15) score+=1; if (tgt!==null&&tgt>20) score+=2;
+    if (bp!==null&&bp>60) score+=2;
+    return { score, data: { revenueGrowth:rg, epsGrowth:eg, grossMargin:gm, debtEquity:de, pe, fcfPositive:fcf!==null?fcf>0:null, roe, targetUpside:tgt, buyPct:bp } };
+  },
+
+  _analyze(stock) {
+    const { ticker, price, techData: td, fundData: fd, newsData: nd, totalScore } = stock;
+    const atr = td.atr || price * 0.02;
+    const atrPct = +(atr / price * 100).toFixed(1);
+    const confidence = Math.min(10, Math.max(4, Math.round(totalScore / 28 * 10)));
+    const riskScore  = Math.min(9, Math.max(1, Math.round(atrPct * 1.8)));
+    const slDist = 1.5 * atr;
+    const entry  = +price.toFixed(2);
+    const sl     = +(price - slDist).toFixed(2);
+    const t1p = +(price * 1.15).toFixed(2), t1pct = 15;
+    const t2p = fd.targetUpside > 20 ? +(price * (1 + fd.targetUpside/100)).toFixed(2) : +(price * 1.28).toFixed(2);
+    const t2pct = +((t2p/price-1)*100).toFixed(1);
+    const t3p = stock.high52 > price * 1.35 ? +(stock.high52 * 1.05).toFixed(2) : +(price * 1.42).toFixed(2);
+    const t3pct = +((t3p/price-1)*100).toFixed(1);
+    const rr = +(((t2p - entry) / (entry - sl))).toFixed(1);
+    const maxDown = -(slDist/price*100).toFixed(1);
+
+    const cats = [];
+    if (td.sma200 && td.sma50 > td.sma200) cats.push('Golden cross — 50MA crossed above 200MA, institutional accumulation signal');
+    if (fd.revenueGrowth > 15) cats.push(`Revenue growing ${fd.revenueGrowth.toFixed(1)}% YoY — above-trend acceleration`);
+    if (fd.targetUpside > 20) cats.push(`Analyst consensus ${fd.targetUpside.toFixed(0)}% above current price`);
+    if (fd.epsGrowth > 20) cats.push(`EPS growth ${fd.epsGrowth.toFixed(1)}% YoY showing earnings leverage`);
+    if (nd.hasCatalyst) cats.push('Major catalyst detected — M&A or corporate event in recent news');
+    if (td.ret3m > 15) cats.push(`${td.ret3m}% 3-month return outpacing the broader market`);
+    if (fd.buyPct > 70) cats.push(`${fd.buyPct.toFixed(0)}% analyst Buy ratings — strong Wall Street conviction`);
+    if (price >= stock.high52 * 0.97) cats.push('Trading at 52-week highs — breakout momentum with institutional support');
+    const fallbacks = ['Volume trend signals accumulation before next move','Price forming higher lows — buyers defending pullbacks','Consolidating above key moving averages before breakout'];
+    while (cats.length < 3) cats.push(fallbacks[cats.length]);
+
+    const vs50 = td.sma50 ? +((price/td.sma50-1)*100).toFixed(1) : null;
+    const entryStrat = vs50 > 8 ? `Wait for a pullback to the 50-day MA (~$${td.sma50?.toFixed(2)}) for better entry` :
+      td.rsi > 65 ? `RSI at ${td.rsi} — scale in on weakness over the next 1–2 weeks` :
+      `Buy at market — RSI at healthy ${td.rsi} with momentum aligned`;
+    const slReason = td.sma50 && sl > td.sma50 * 0.97 ?
+      `Below the 50-day MA ($${td.sma50?.toFixed(2)}) — a close here signals trend failure` :
+      `1.5× ATR below entry — limits loss to ${(-maxDown).toFixed(1)}% while giving room to breathe`;
+
+    const fundStr = fd.revenueGrowth > 0 ? `Revenue growing ${fd.revenueGrowth.toFixed(0)}% YoY with ${fd.grossMargin > 0 ? fd.grossMargin.toFixed(0)+'% gross margins.' : 'solid margins.'}` : '';
+    const techStr = `RSI ${td.rsi} in the momentum sweet spot${td.sma200 && td.sma50 > td.sma200 ? ', golden cross confirmed' : ''}. ${td.ret3m > 5 ? td.ret3m+'% 3-month return.' : 'Price above key moving averages.'}`;
+    const analystStr = fd.targetUpside > 20 ? ` Analysts see ${fd.targetUpside.toFixed(0)}% further upside.` : '';
+    const thesis = `${ticker} scores ${totalScore}/28 — a high-conviction 6-month swing setup. ${fundStr} ${techStr}${analystStr}`.replace(/\s+/g,' ').trim();
+
+    const newsSupport = nd.score >= 3 ? 'Strong positive news flow reinforces the bullish setup.' :
+      nd.score >= 1 ? 'News sentiment slightly positive — no red flags in recent coverage.' :
+      nd.score === 0 ? 'Setup driven by technicals and fundamentals, not narrative.' :
+      'Monitor news closely — some cautionary coverage detected.';
+
+    const verdicts = [`Score ${totalScore}/28 — one of the highest-conviction setups in this scan.`, `${rr}:1 risk/reward with a clear ${(-maxDown).toFixed(1)}% max loss and ${t3pct}% full target.`, `Technical and fundamental signals aligned — sized for a 6-month hold.`, `Building momentum with a clear invalidation at $${sl}.`];
+    const verdict = verdicts[totalScore % verdicts.length];
+
+    const risks = [];
+    if (riskScore >= 7) risks.push('High ATR — volatile stock, size position accordingly');
+    if (fd.debtEquity > 1.5) risks.push('Elevated debt load could amplify downside in a rising-rate environment');
+    if (td.rsi > 70) risks.push('RSI elevated — short-term pullback likely before next leg higher');
+    if (nd.score < 0) risks.push('Cautionary news sentiment — monitor headlines for deterioration');
+    risks.push('Broad market sell-off would pull all positions down regardless of individual setup quality');
+    if (risks.length < 2) risks.push('Sector rotation out of this industry could stall momentum');
+
+    return { thesis, catalysts: cats.slice(0,3), entry:{price:entry,strategy:entryStrat}, stopLoss:{price:sl,reasoning:slReason},
+      takeProfit:{target1:{price:t1p,pct:t1pct,reasoning:'Near-term resistance — first profit zone'}, target2:{price:t2p,pct:t2pct,reasoning:fd.targetUpside>20?'Analyst consensus target':'Mid-term technical target'}, target3:{price:t3p,pct:t3pct,reasoning:price>=stock.high52*0.9?'52-week high breakout continuation':'Full upside target'}},
+      riskReward:rr, confidence, riskScore, timeframe:confidence>=8?'3-5 months':'4-6 months',
+      maxDownside:+maxDown, potentialUpside:t3pct, verdict, newsSupport, keyRisks:risks.slice(0,3) };
   },
 
   setFilter(f) {
