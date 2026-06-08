@@ -1189,7 +1189,7 @@ const Admin = {
 
 // ── GATE ───────────────────────────────────────────────────────────────────
 const Gate = {
-  _key: 'etGateVerified',
+  _key: 'etGateVerified2',
   init(){
     if(localStorage.getItem(this._key) === '1'){
       document.getElementById('gate-screen').style.display = 'none';
@@ -1198,7 +1198,7 @@ const Gate = {
   submit(){
     const val = document.getElementById('gate-code').value;
     const err = document.getElementById('gate-err');
-    if(val === '4BNmp'){
+    if(val === 'HHGG'){
       localStorage.setItem(this._key, '1');
       document.getElementById('gate-screen').style.display = 'none';
     } else {
